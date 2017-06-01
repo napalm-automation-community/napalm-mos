@@ -12,5 +12,13 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-"""napalm-skeleton package."""
-from skeleton import SkeletonDriver
+"""napalm-mos package."""
+import pkg_resources
+from napalm_mos.mos import MOSDriver
+
+try:
+    __version__ = pkg_resources.get_distribution('napalm-mos').version
+except pkg_resources.DistributionNotFound:
+    __version__ = "Not installed"
+
+__all__ = ["MOSDriver"]

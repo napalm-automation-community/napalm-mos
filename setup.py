@@ -11,11 +11,11 @@ install_reqs = parse_requirements('requirements.txt', session=uuid.uuid1())
 reqs = [str(ir.req) for ir in install_reqs]
 
 setup(
-    name="napalm-skeleton",
+    name="napalm-mos",
     version="0.1.0",
     packages=find_packages(),
-    author="David Barroso",
-    author_email="dbarrosop@dravetech.com",
+    author="Brandon Ewing",
+    author_email="brandon.ewing@warningg.com",
     description="Network Automation and Programmability Abstraction Layer with Multivendor support",
     classifiers=[
         'Topic :: Utilities',
@@ -25,7 +25,7 @@ setup(
         'Operating System :: POSIX :: Linux',
         'Operating System :: MacOS',
     ],
-    url="https://github.com/napalm-automation/napalm-skeleton",
+    url="https://github.com/napalm-automation/napalm-mos",
     include_package_data=True,
     install_requires=reqs,
 )
