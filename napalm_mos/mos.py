@@ -324,10 +324,10 @@ class MOSDriver(NetworkDriver):
                     'remote_chassis_id': re.sub(r'\s*\([^\)]*\)\s*',
                                                 '',
                                                 info_dict.get('chassis id', '')),
-                    'remote_system_name_': info_dict.get('system name', ''),
+                    'remote_system_name': info_dict.get('system name', ''),
                     'remote_system_description': info_dict.get('system description', ''),
                     'remote_system_capab': system_capab,
-                    'remote_system_enabled_capab': enabled_capab
+                    'remote_system_enable_capab': enabled_capab
                 }
 
                 lldp_neighbors_out[interface].append(tlv_dict)
