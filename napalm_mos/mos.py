@@ -27,6 +27,8 @@ from __future__ import unicode_literals
 
 # std libs
 import re
+import ast
+import pyeapi
 
 from datetime import timedelta
 
@@ -39,6 +41,7 @@ from napalm_base.base import NetworkDriver
 from napalm_base.utils import string_parsers, py23_compat
 from napalm_base.exceptions import (
     ConnectionException,
+    CommandErrorException,
 )
 
 TRANSPORTS = {
@@ -64,7 +67,6 @@ class MOSDriver(NetworkDriver):
                                       Community\saccess:\s+(?P<mode>\S+)
                                    (\nCommunity\ssource:\s+(?P<v4_acl>\S+))?''', re.VERBOSE)
 
-
     def __init__(self, hostname, username, password, timeout=60, optional_args=None):
         """Constructor."""
         self.device = None
@@ -89,7 +91,7 @@ class MOSDriver(NetworkDriver):
     def open(self):
         """Implementation of NAPALM method open."""
         if self.transport not in TRANSPORTS:
-            raise typeError('invalid transport specified')
+            raise TypeError('invalid transport specified')
         klass = TRANSPORTS[self.transport]
         try:
             connection = klass(
@@ -150,11 +152,11 @@ class MOSDriver(NetworkDriver):
             '''Parse the Metamako speed string from 'sh int status' into an Mbit/s int'''
 
             factormap = {
-                '' : 1e-6,
-                'k' : 1e-3,
-                'M' : 1,
-                'G' : 1000,
-                'T' : 1000000
+                '': 1e-6,
+                'k': 1e-3,
+                'M': 1,
+                'G': 1000,
+                'T': 1000000
             }
             match = re.match(r'^(?P<speed>\d+)(?P<unit>\D)?$', speed)
             if match:
@@ -168,7 +170,7 @@ class MOSDriver(NetworkDriver):
         commands.append('show interfaces description')
         output = self.device.run_commands(commands)
 
-        descriptions = {d['Port'] : d['Description'] for d in output[1]['output']}
+        descriptions = {d['Port']: d['Description'] for d in output[1]['output']}
 
         interfaces = {}
 
@@ -228,7 +230,7 @@ class MOSDriver(NetworkDriver):
             interface_counters[interface].update(
                 tx_errors=int(errorsdict.get(interface, {}).get('tx', -1)),
                 rx_errors=int(errorsdict.get(interface, {}).get('tx', -1)),
-                tx_discards=-1, # Metamako discards?
+                tx_discards=-1,  # Metamako discards?
                 rx_discards=-1,
                 tx_octets=int(counters.get('txoctets', -1)),
                 rx_octets=int(counters.get('rxoctets', -1)),
@@ -260,9 +262,9 @@ class MOSDriver(NetworkDriver):
         temps = {}
         for n, v in output['systemTemperature']['sensors'].items():
             temps[v['description']] = {
-                'temperature' : float(v['temp(C)']),
-                'is_alert' : float(v['temp(C)']) > float(v['alertThreshold']),
-                'is_critical' : float(v['temp(C)']) > float(v['criticalThreshold'])
+                'temperature': float(v['temp(C)']),
+                'is_alert': float(v['temp(C)']) > float(v['alertThreshold']),
+                'is_critical': float(v['temp(C)']) > float(v['criticalThreshold'])
             }
         environment_counters['temperature'].update(temps)
 
@@ -296,7 +298,6 @@ class MOSDriver(NetworkDriver):
         interfaces_split = re.split(r'^\*\s(\S+)$', neighbors_str, flags=re.MULTILINE)[1:]
         interface_list = zip(*(iter(interfaces_split),) * 2)
 
-
         for interface, interface_str in interface_list:
 
             lldp_neighbors_out[interface] = []
@@ -308,27 +309,25 @@ class MOSDriver(NetworkDriver):
                     key, value = info_line.split(':', 1)
                     info_dict[key.strip()] = value.strip()
 
-
                 # System capabilities
                 try:
                     capabilities = ast.literal_eval(info_dict.get('system capability', '{}'))
-                except:
+                except Exception:
                     capabilities = {}
                 system_capab = capabilities.get('capabilities', '').replace(',', ', ')
                 enabled_capab = capabilities.get('enabled', '').replace(',', ', ')
 
-
                 tlv_dict = {
-                    'parent_interface' : interface,
-                    'remote_port' : re.sub(r'\s*\([^\)]*\)\s*', '', info_dict.get('port id', '')),
-                    'remote_port_description' : info_dict.get('port description', ''),
-                    'remote_chassis_id' : re.sub(r'\s*\([^\)]*\)\s*',
-                                                 '',
-                                                 info_dict.get('chassis id', '')),
-                    'remote_system_name_' : info_dict.get('system name', ''),
-                    'remote_system_description' : info_dict.get('system description', ''),
-                    'remote_system_capab' : system_capab,
-                    'remote_system_enabled_capab' : enabled_capab
+                    'parent_interface': interface,
+                    'remote_port': re.sub(r'\s*\([^\)]*\)\s*', '', info_dict.get('port id', '')),
+                    'remote_port_description': info_dict.get('port description', ''),
+                    'remote_chassis_id': re.sub(r'\s*\([^\)]*\)\s*',
+                                                '',
+                                                info_dict.get('chassis id', '')),
+                    'remote_system_name_': info_dict.get('system name', ''),
+                    'remote_system_description': info_dict.get('system description', ''),
+                    'remote_system_capab': system_capab,
+                    'remote_system_enabled_capab': enabled_capab
                 }
 
                 lldp_neighbors_out[interface].append(tlv_dict)
