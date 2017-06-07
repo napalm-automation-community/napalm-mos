@@ -5,7 +5,7 @@ import uuid
 from setuptools import setup, find_packages
 from pip.req import parse_requirements
 
-__author__ = 'David Barroso <dbarrosop@dravetech.com>'
+__author__ = 'Benny Holmgren <benny@holmgren.id.au>'
 
 install_reqs = parse_requirements('requirements.txt', session=uuid.uuid1())
 reqs = [str(ir.req) for ir in install_reqs]
@@ -14,14 +14,12 @@ setup(
     name="napalm-mos",
     version="0.1.0",
     packages=find_packages(),
-    author="Brandon Ewing",
-    author_email="brandon.ewing@warningg.com",
+    author="Benny Holmgren, Brandon Ewing",
+    author_email="benny@holmgren.id.au, brandon.ewing@warningg.com",
     description="Network Automation and Programmability Abstraction Layer with Multivendor support",
     classifiers=[
         'Topic :: Utilities',
          'Programming Language :: Python',
-         'Programming Language :: Python :: 2',
-         'Programming Language :: Python :: 2.7',
         'Operating System :: POSIX :: Linux',
         'Operating System :: MacOS',
     ],
