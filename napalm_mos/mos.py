@@ -503,21 +503,21 @@ class MOSDriver(NetworkDriver):
                 'state': {
                     'input_power': {
                         'instant': (port_values['rxPwr']
-                                    if 'rxPwr' in port_values else 0.0),
+                                    if isinstance(port_values.get("rxPwr"), float) else 0.0),
                         'avg': 0.0,
                         'min': 0.0,
                         'max': 0.0
                     },
                     'output_power': {
                         'instant': (port_values['txPwr']
-                                    if 'txPwr' in port_values else 0.0),
+                                    if isinstance(port_values.get("txPwr"), float) else 0.0),
                         'avg': 0.0,
                         'min': 0.0,
                         'max': 0.0
                     },
                     'laser_bias_current': {
                         'instant': (port_values['txBias']
-                                    if 'txBias' in port_values else 0.0),
+                                    if isinstance(port_values.get("txBias"), float) else 0.0),
                         'avg': 0.0,
                         'min': 0.0,
                         'max': 0.0
