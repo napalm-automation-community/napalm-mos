@@ -228,18 +228,18 @@ class MOSDriver(NetworkDriver):
         for interface, counters in output[0]['output']['interfaces'].items():
             interface_counters[interface] = {}
             interface_counters[interface].update(
-                tx_errors=int(errorsdict.get(interface, {}).get('tx', -1)),
-                rx_errors=int(errorsdict.get(interface, {}).get('tx', -1)),
+                tx_errors=int(errorsdict.get(interface, {}).get('tx', -1).replace(',', '')),
+                rx_errors=int(errorsdict.get(interface, {}).get('tx', -1).replace(',', '')),
                 tx_discards=-1,  # Metamako discards?
                 rx_discards=-1,
-                tx_octets=int(counters.get('txoctets', -1)),
-                rx_octets=int(counters.get('rxoctets', -1)),
-                tx_unicast_packets=int(counters.get('txucastpkts', -1)),
-                rx_unicast_packets=int(counters.get('rxucastpkts', -1)),
-                tx_multicast_packets=int(counters.get('txmcastpkts', -1)),
-                rx_multicast_packets=int(counters.get('rxmcastpkts', -1)),
-                tx_broadcast_packets=int(counters.get('txbcastpkts', -1)),
-                rx_broadcast_packets=int(counters.get('rxbcastpkts', -1)),
+                tx_octets=int(counters.get('txoctets', -1).replace(',', '')),
+                rx_octets=int(counters.get('rxoctets', -1).replace(',', '')),
+                tx_unicast_packets=int(counters.get('txucastpkts', -1).replace(',', '')),
+                rx_unicast_packets=int(counters.get('rxucastpkts', -1).replace(',', '')),
+                tx_multicast_packets=int(counters.get('txmcastpkts', -1).replace(',', '')),
+                rx_multicast_packets=int(counters.get('rxmcastpkts', -1).replace(',', '')),
+                tx_broadcast_packets=int(counters.get('txbcastpkts', -1).replace(',', '')),
+                rx_broadcast_packets=int(counters.get('rxbcastpkts', -1).replace(',', '')),
             )
         return interface_counters
 
