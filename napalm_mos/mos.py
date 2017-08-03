@@ -467,7 +467,8 @@ class MOSDriver(NetworkDriver):
             'show snmp community'
         ]
         snmp_config = self.device.run_commands(commands, encoding='json')
-        snmp_dict['chassis_id'] = snmp_config[0]
+        # chassis-id is broken
+        # snmp_dict['chassis_id'] = snmp_config[0]
         snmp_dict['location'] = snmp_config[1].replace('Location: ', '').strip()
         snmp_dict['contact'] = snmp_config[2].replace('Contact: ', '').strip()
 
