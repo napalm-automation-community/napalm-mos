@@ -1,0 +1,15 @@
+* et1
+  src: (mac address) 00:1c:73:27:22:de
+  received: Thu Aug  3 14:09:13 2017 (0:00:26)
+  chassis id: (mac address) 00:1c:73:27:22:b0
+  port id: (interface name) Ethernet46
+  time to live: 120 secs
+  system name: vEOS.local
+  system description: Arista Networks EOS version 4.18.3.1F running on an Arista Networks DCS-7150S-64-CL
+  system capability: {'enabled': 'mac-bridge,router', 'capabilities': 'mac-bridge,router'}
+  management address: {'subtype': 1, 'length': 5, 'address': '0ac1fffd'}
+  IEEE 802.1 pvid (1): 01 b0
+  IEEE 802.3 link aggr (3): {'capability': 'capable', 'status': 'not in aggregation', 'port id': '00 00 00 00'}
+  IEEE 802.3 max frame size (4): 9236
+  end of lldpdu: 
+
