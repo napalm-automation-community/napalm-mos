@@ -31,6 +31,7 @@ import ast
 import pyeapi
 
 from datetime import timedelta
+from distutils.version import LooseVersion
 
 from pyeapi.client import Node as EapiNode
 from pyeapi.eapilib import HttpsEapiConnection, HttpEapiConnection
@@ -105,7 +106,10 @@ class MOSDriver(NetworkDriver):
             if self.device is None:
                 self.device = EapiNode(connection, enablepwd=self.enablepwd)
 
-            self.device.run_commands(['show version'])
+            sw_version = self.device.run_commands(
+                    ['show version'])[0].get('softwareImageVersion', "0.0.0")
+            if LooseVersion(sw_version) < LooseVersion("0.14.1"):
+                raise ConnectionException("MOS Software Version 0.14.1 or better required")
         except ConnectionError as ce:
             raise ConnectionException(ce.message)
 
