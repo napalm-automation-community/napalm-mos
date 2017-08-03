@@ -487,7 +487,7 @@ class MOSDriver(NetworkDriver):
 
         output = (
             self.device.run_commands(
-                command, encoding='json')[0]['output']['interfaces'])
+                command, encoding='json')[0]['interfaces'])
 
         # Formatting data into return data structure
         optics_detail = {}
