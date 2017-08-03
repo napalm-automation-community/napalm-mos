@@ -462,12 +462,12 @@ class MOSDriver(NetworkDriver):
             'show snmp contact',
             'show snmp community'
         ]
-        snmp_config = self.device.run_commands(commands, encoding='json')
-        snmp_dict['chassis_id'] = snmp_config[0]
-        snmp_dict['location'] = snmp_config[1].replace('Location: ', '').strip()
-        snmp_dict['contact'] = snmp_config[2].replace('Contact: ', '').strip()
+        snmp_config = self.device.run_commands(commands, encoding='text')
+        snmp_dict['chassis_id'] = snmp_config[0]['output']
+        snmp_dict['location'] = snmp_config[1]['output'].replace('Location: ', '').strip()
+        snmp_dict['contact'] = snmp_config[2]['output'].replace('Contact: ', '').strip()
 
-        community_outputs = snmp_config[3].split('\n\n')
+        community_outputs = snmp_config[3]['output'].split('\n\n')
         for community_output in community_outputs:
 
             match = self._RE_SNMP_COMM.search(community_output)
