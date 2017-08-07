@@ -324,7 +324,7 @@ class MOSDriver(NetworkDriver):
                 enabled_capab = capabilities.get('enabled', '').replace(',', ', ')
 
                 tlv_dict = {
-                    'parent_interface': interface,
+                    'parent_interface': py23_compat.text_type(interface),
                     'remote_port': re.sub(r'\s*\([^\)]*\)\s*', '', info_dict.get('port id', '')),
                     'remote_port_description': info_dict.get('port description', ''),
                     'remote_chassis_id': re.sub(r'\s*\([^\)]*\)\s*',
