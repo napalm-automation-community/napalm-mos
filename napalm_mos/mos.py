@@ -31,6 +31,7 @@ import ast
 import pyeapi
 
 from datetime import timedelta
+from distutils.version import LooseVersion
 
 from pyeapi.client import Node as EapiNode
 from pyeapi.eapilib import HttpsEapiConnection, HttpEapiConnection
@@ -105,7 +106,10 @@ class MOSDriver(NetworkDriver):
             if self.device is None:
                 self.device = EapiNode(connection, enablepwd=self.enablepwd)
 
-            self.device.run_commands(['show version'])
+            sw_version = self.device.run_commands(
+                    ['show version'])[0].get('softwareImageVersion', "0.0.0")
+            if LooseVersion(sw_version) < LooseVersion("0.14.1"):
+                raise ConnectionException("MOS Software Version 0.14.1 or better required")
         except ConnectionError as ce:
             raise ConnectionException(ce.message)
 
@@ -120,13 +124,15 @@ class MOSDriver(NetworkDriver):
 
     def get_facts(self):
         """Implementation of NAPALM method get_facts."""
-        commands = ['show version', 'show hostname', 'show interfaces status']
-        result = self.device.run_commands(commands)
+        commands_json = ['show version', 'show interfaces status']
+        commands_text = ['show hostname']
+        result_json = self.device.run_commands(commands_json, encoding='json')
+        result_text = self.device.run_commands(commands_text, encoding='text')
 
-        version = result[0]['output']
-        hostname = result[1]['output'].splitlines()[0].split(" ")[-1]
-        fqdn = result[1]['output'].splitlines()[1].split(" ")[-1]
-        interfaces = result[2]['output']['interfaces'].keys()
+        version = result_json[0]
+        hostname = result_text[0]['output'].splitlines()[0].split(" ")[-1]
+        fqdn = result_text[0]['output'].splitlines()[1].split(" ")[-1]
+        interfaces = result_json[1]['interfaces'].keys()
         interfaces = string_parsers.sorted_nicely(interfaces)
 
         u_match = re.match(self._RE_UPTIME, version['uptime']).groupdict()
@@ -168,13 +174,13 @@ class MOSDriver(NetworkDriver):
         commands = []
         commands.append('show interfaces status')
         commands.append('show interfaces description')
-        output = self.device.run_commands(commands)
+        output = self.device.run_commands(commands, encoding='json')
 
-        descriptions = {d['Port']: d['Description'] for d in output[1]['output']}
+        descriptions = {d['Port']: d['Description'] for d in output[1]}
 
         interfaces = {}
 
-        for interface, values in output[0]['output']['interfaces'].items():
+        for interface, values in output[0]['interfaces'].items():
             interfaces[interface] = {}
 
             # A L1 device doesn't really have a line protocol.
@@ -201,7 +207,7 @@ class MOSDriver(NetworkDriver):
     def get_lldp_neighbors(self):
         commands = []
         commands.append('show lldp neighbor')
-        output = self.device.run_commands(commands)[0]['output']
+        output = self.device.run_commands(commands, encoding='json')[0]
 
         lldp = {}
 
@@ -222,10 +228,10 @@ class MOSDriver(NetworkDriver):
 
     def get_interfaces_counters(self):
         commands = ['show interfaces counters', 'show interfaces counters errors']
-        output = self.device.run_commands(commands)
+        output = self.device.run_commands(commands, encoding='json')
         interface_counters = {}
-        errorsdict = output[1]['output']['interfaces']
-        for interface, counters in output[0]['output']['interfaces'].items():
+        errorsdict = output[1]['interfaces']
+        for interface, counters in output[0]['interfaces'].items():
             interface_counters[interface] = {}
             interface_counters[interface].update(
                 tx_errors=int(errorsdict.get(interface, {}).get('tx', -1).replace(',', '')),
@@ -246,7 +252,7 @@ class MOSDriver(NetworkDriver):
     def get_environment(self):
 
         commands = ['show environment all']
-        output = self.device.run_commands(commands)[0]['output']
+        output = self.device.run_commands(commands, encoding='json')[0]
         environment_counters = {
             'fans': {},
             'temperature': {},
@@ -293,7 +299,7 @@ class MOSDriver(NetworkDriver):
         lldp_neighbors_out = {}
 
         commands = ['show lldp neighbor {} verbose'.format(interface)]
-        neighbors_str = self.device.run_commands(commands)[0]['output']
+        neighbors_str = self.device.run_commands(commands, encoding='text')[0]['output']
 
         interfaces_split = re.split(r'^\*\s(\S+)$', neighbors_str, flags=re.MULTILINE)[1:]
         interface_list = zip(*(iter(interfaces_split),) * 2)
@@ -367,7 +373,7 @@ class MOSDriver(NetworkDriver):
         commands = ['show arp']
 
         try:
-            output = self.device.run_commands(commands)[0]['output']
+            output = self.device.run_commands(commands, encoding='text')[0]['output']
         except pyeapi.eapilib.CommandError:
             return []
 
@@ -460,8 +466,8 @@ class MOSDriver(NetworkDriver):
             'show snmp contact',
             'show snmp community'
         ]
-        snmp_config = self.device.run_commands(commands, encoding='json')
-        snmp_dict['chassis_id'] = snmp_config[0]['output']
+        snmp_config = self.device.run_commands(commands, encoding='text')
+        snmp_dict['chassis_id'] = snmp_config[0]['output'].replace('Chassis: ', '').strip()
         snmp_dict['location'] = snmp_config[1]['output'].replace('Location: ', '').strip()
         snmp_dict['contact'] = snmp_config[2]['output'].replace('Contact: ', '').strip()
 
@@ -485,7 +491,7 @@ class MOSDriver(NetworkDriver):
 
         output = (
             self.device.run_commands(
-                command, encoding='json')[0]['output']['interfaces'])
+                command, encoding='json')[0]['interfaces'])
 
         # Formatting data into return data structure
         optics_detail = {}
