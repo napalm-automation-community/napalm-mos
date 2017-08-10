@@ -80,6 +80,7 @@ class MOSDriver(NetworkDriver):
         self.password = password
         self.timeout = timeout
         self.config_session = None
+        self._current_config = None
 
         if optional_args is None:
             optional_args = {}
@@ -120,7 +121,9 @@ class MOSDriver(NetworkDriver):
 
     def close(self):
         """Implementation of NAPALM method close."""
-        pass
+        if self.config_session is not None:
+            # Only doing this because discard_config is broke
+            self.commit_config()
 
     def is_alive(self):
         return {
