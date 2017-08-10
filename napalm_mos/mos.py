@@ -28,9 +28,10 @@ from __future__ import unicode_literals
 # std libs
 import re
 import ast
+import difflib
 import pyeapi
 
-from datetime import timedelta
+from datetime import timedelta, datetime
 from distutils.version import LooseVersion
 
 from pyeapi.client import Node as EapiNode
@@ -43,6 +44,9 @@ from napalm_base.utils import string_parsers, py23_compat
 from napalm_base.exceptions import (
     ConnectionException,
     CommandErrorException,
+    MergeConfigException,
+    ReplaceConfigException,
+    SessionLockedException
 )
 
 TRANSPORTS = {
@@ -75,6 +79,7 @@ class MOSDriver(NetworkDriver):
         self.username = username
         self.password = password
         self.timeout = timeout
+        self.config_session = None
 
         if optional_args is None:
             optional_args = {}
@@ -151,6 +156,91 @@ class MOSDriver(NetworkDriver):
             'uptime': int(uptime),
             'interface_list': interfaces,
         }
+
+    def _lock(self):
+        if self.config_session is None:
+            self.config_session = "napalm_{}".format(datetime.now().microsecond)
+            commands = ["copy running-config flash:{}".format(self.config_session),
+                        "show running-config"]
+            output = self.device.run_commands(commands, encoding='text')
+            self._current_config = output[1]['output']
+        if [k for k in self._get_sessions() if k != self.config_session]:
+            self.device.run_commands(["delete flash:{}".format(self.config_session)])
+            self.config_session = None
+            raise SessionLockedException('Session already in use')
+
+    def _unlock(self):
+        if self.config_session is not None:
+            self.device.run_commands(["delete flash:{}".format(self.config_session)])
+            self.config_session = None
+            self._current_config = None
+
+    def _get_sessions(self):
+        return [l.split()[-1] for l in self.device.run_commands(
+            ["dir flash:"], encoding='text')[0]['output'].splitlines()
+                if "napalm_" in l.split()[-1]]
+
+    def _load_config(self, filename=None, config=None, replace=False):
+        if replace:
+            raise NotImplementedError("Config replacement not supported yet")
+
+        self._lock()
+        commands = []
+        commands.append("configure terminal")
+        if filename is not None:
+            with open(filename, 'r') as f:
+                lines = f.readlines()
+        else:
+            if isinstance(config, list):
+                lines = config
+            else:
+                lines = config.splitlines()
+
+        for line in lines:
+            line = line.strip()
+            if line == '' or line.startswith('!'):
+                continue
+            commands.append(line)
+
+        try:
+            self.device.run_commands(commands)
+        except pyeapi.eapilib.CommandError as e:
+            self.discard_config()
+            if replace:
+                raise ReplaceConfigException(e.message)
+            else:
+                raise MergeConfigException(e.message)
+
+    def load_merge_candidate(self, filename=None, config=None):
+        self._load_config(filename=filename, config=config, replace=False)
+
+    def discard_config(self):
+        raise NotImplementedError("Config rollback is broken in this release")
+        if self.config_session is not None:
+            self.device.run_commands(["copy flash:{} running-config".format(self.config_session)])
+            self._unlock()
+
+    def commit_config(self):
+        if self.config_session is not None:
+            commands = ["copy running-config flash:rollback-0",
+                        "copy running-config startup-config"]
+            self.device.run_commands(commands)
+            self._unlock()
+
+    def rollback(self):
+        raise NotImplementedError("Config rollback is broken in this release")
+        commands = ["copy flash:rollback-0 running-config",
+                    "copy running-config startup-config"]
+        self.device.run_commands(commands)
+
+    def compare_config(self):
+        if self.config_session is None:
+            return ''
+        running_config = self.get_config(retrieve='running')['running']
+        return '\n'.join(difflib.unified_diff(
+            [l for l in running_config.splitlines() if not l.startswith('! time:')],
+            [l for l in self._current_config.splitlines() if not l.startswith('! time:')]
+        ))
 
     def get_interfaces(self):
 
