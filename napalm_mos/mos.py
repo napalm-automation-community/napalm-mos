@@ -33,6 +33,9 @@ import pyeapi
 
 from datetime import timedelta, datetime
 from distutils.version import LooseVersion
+from tempfile import NamedTemporaryFile
+
+from netmiko import ConnectHandler
 
 from pyeapi.client import Node as EapiNode
 from pyeapi.eapilib import HttpsEapiConnection, HttpEapiConnection
@@ -48,6 +51,8 @@ from napalm_base.exceptions import (
     ReplaceConfigException,
     SessionLockedException
 )
+
+from napalm_mos.file_copy import FileCopy, FileTransferError
 
 TRANSPORTS = {
     'https': HttpsEapiConnection,
@@ -81,6 +86,8 @@ class MOSDriver(NetworkDriver):
         self.timeout = timeout
         self.config_session = None
         self._current_config = None
+        self._replace_config = False
+        self._ssh = None
 
         if optional_args is None:
             optional_args = {}
@@ -116,6 +123,11 @@ class MOSDriver(NetworkDriver):
                     ['show version'])[0].get('softwareImageVersion', "0.0.0")
             if LooseVersion(sw_version) < LooseVersion("0.14.1"):
                 raise ConnectionException("MOS Software Version 0.14.1 or better required")
+            # This is to get around user mismatch in API/FileCopy
+            if self._ssh is None:
+                self._ssh = ConnectHandler(device_type='cisco_ios', ip=self.hostname,
+                                           username=self.username, password=self.password)
+                self._ssh.enable()
         except ConnectionError as ce:
             raise ConnectionException(ce.message)
 
@@ -124,6 +136,7 @@ class MOSDriver(NetworkDriver):
         if self.config_session is not None:
             # Only doing this because discard_config is broke
             self.commit_config()
+        self._ssh.disconnect()
 
     def is_alive(self):
         return {
@@ -165,8 +178,8 @@ class MOSDriver(NetworkDriver):
             self.config_session = "napalm_{}".format(datetime.now().microsecond)
             commands = ["copy running-config flash:{}".format(self.config_session),
                         "show running-config"]
-            output = self.device.run_commands(commands, encoding='text')
-            self._current_config = output[1]['output']
+            for command in commands:
+                self._ssh.send_command(command)
         if [k for k in self._get_sessions() if k != self.config_session]:
             self.device.run_commands(["delete flash:{}".format(self.config_session)])
             self.config_session = None
@@ -174,9 +187,9 @@ class MOSDriver(NetworkDriver):
 
     def _unlock(self):
         if self.config_session is not None:
-            self.device.run_commands(["delete flash:{}".format(self.config_session)])
+            self._ssh.send_command("bash rm -f /mnt/flash/{}".format(self.config_session))
             self.config_session = None
-            self._current_config = None
+            self._replace_config = False
 
     def _get_sessions(self):
         return [l.split()[-1] for l in self.device.run_commands(
@@ -184,71 +197,73 @@ class MOSDriver(NetworkDriver):
                 if "napalm_" in l.split()[-1]]
 
     def _load_config(self, filename=None, config=None, replace=False):
+        if filename and config:
+            raise ValueError("Cannot simultaneously set filename and config")
         if replace:
-            raise NotImplementedError("Config replacement not supported yet")
+            raise NotImplementedError("Config replacement is broken")
 
         self._lock()
-        commands = []
-        commands.append("configure terminal")
-        if filename is not None:
-            with open(filename, 'r') as f:
-                lines = f.readlines()
+        if filename is None:
+            with NamedTemporaryFile() as fd:
+                if isinstance(config, list):
+                    config.insert(0, "configure")
+                    config = "\n".join(config)
+                else:
+                    config = "configure\n" + config
+                fd.write(config.encode('utf-8'))
+                fd.flush()
+
+                with FileCopy(self, fd.name, '/mnt/flash/{}'.format(self.config_session),
+                              'put') as c:
+                    c.put_file()
         else:
-            if isinstance(config, list):
-                lines = config
-            else:
-                lines = config.splitlines()
-
-        for line in lines:
-            line = line.strip()
-            if line == '' or line.startswith('!'):
-                continue
-            commands.append(line)
-
-        try:
-            self.device.run_commands(commands)
-        except pyeapi.eapilib.CommandError as e:
-            self.discard_config()
-            if replace:
-                raise ReplaceConfigException(e.message)
-            else:
-                raise MergeConfigException(e.message)
+            with FileCopy(self, filename, '/mnt/flash/{}'.format(self.config_session),
+                          'put') as c:
+                c.put_file()
 
     def load_merge_candidate(self, filename=None, config=None):
         self._load_config(filename=filename, config=config, replace=False)
+        self._replace_config = False
+
+    def load_replace_candidate(self, filename=None, config=None):
+        self._load_config(filename=filename, config=config, replace=True)
+        self._replace_config = True
+
+    def compare_config(self):
+        # There's no good way to do this yet
+        if self._replace_config:
+            return self._ssh.send_command("diff running-config flash:{}".format(
+                self.config_session))
+        else:
+            return self._ssh.send_command("bash cat /mnt/flash/{}".format(self.config_session))
 
     def discard_config(self):
-        raise NotImplementedError("Config rollback is broken in this release")
         if self.config_session is not None:
-            self.device.run_commands(["copy flash:{} running-config".format(self.config_session)])
             self._unlock()
 
     def commit_config(self):
         if self.config_session is not None:
-            commands = ["copy running-config flash:rollback-0",
-                        "copy running-config startup-config"]
-            self.device.run_commands(commands)
+            commands = ["delete flash:rollback-0", "copy running-config flash:rollback-0"]
+            if self.compare_config():
+                if self._replace_config:
+                    commands.append("copy flash:{} running-config ".format(self.config_session))
+                else:
+                    commands.append("bash /usr/bin/cli /mnt/flash/{}".format(self.config_session))
+            commands.append("copy running-config startup-config")
+            for command in commands:
+                self._ssh.send_command(command)
             self._unlock()
 
     def rollback(self):
-        raise NotImplementedError("Config rollback is broken in this release")
         commands = ["copy flash:rollback-0 running-config",
                     "copy running-config startup-config"]
-        self.device.run_commands(commands)
-
-    def compare_config(self):
-        if self.config_session is None:
-            return ''
-        running_config = self.get_config(retrieve='running')['running']
-        return '\n'.join(difflib.unified_diff(
-            [l for l in running_config.splitlines() if not l.startswith('! time:')],
-            [l for l in self._current_config.splitlines() if not l.startswith('! time:')]
-        ))
+        for command in commands:
+            self._ssh.send_command(command)
 
     def get_interfaces(self):
 
         def _parse_mm_speed(speed):
-            '''Parse the Metamako speed string from 'sh int status' into an Mbit/s int'''
+            """Parse the Metamako speed string from 'sh int status' into an Mbit/s int"""
 
             factormap = {
                 '': 1e-6,
@@ -323,12 +338,12 @@ class MOSDriver(NetworkDriver):
         commands = ['show interfaces counters', 'show interfaces counters errors']
         output = self.device.run_commands(commands, encoding='json')
         interface_counters = {}
-        errorsdict = output[1]['interfaces']
+        errors_dict = output[1]['interfaces']
         for interface, counters in output[0]['interfaces'].items():
             interface_counters[interface] = {}
             interface_counters[interface].update(
-                tx_errors=int(errorsdict.get(interface, {}).get('tx', -1).replace(',', '')),
-                rx_errors=int(errorsdict.get(interface, {}).get('tx', -1).replace(',', '')),
+                tx_errors=int(errors_dict.get(interface, {}).get('tx', -1).replace(',', '')),
+                rx_errors=int(errors_dict.get(interface, {}).get('tx', -1).replace(',', '')),
                 tx_discards=-1,  # Metamako discards?
                 rx_discards=-1,
                 tx_octets=int(counters.get('txoctets', -1).replace(',', '')),
@@ -371,9 +386,9 @@ class MOSDriver(NetworkDriver):
         psu_dict = output['systemPower']['powerSupplies']
         for psu, data in output['systemPower']['powerOutput'].items():
             environment_counters['power'][psu] = {
-                'status': float(re.match(r'^([\d\.]+)', data['inputVoltage']).group()) != 0.0,
-                'capacity': float(re.match(r'^([\d\.]+)', psu_dict[psu]['capacity']).group()),
-                'output': float(re.match(r'^([\d\.]+)', data['outputPower']).group())
+                'status': float(re.match(r'^([\d.]+)', data['inputVoltage']).group()) != 0.0,
+                'capacity': float(re.match(r'^([\d.]+)', psu_dict[psu]['capacity']).group()),
+                'output': float(re.match(r'^([\d.]+)', data['outputPower']).group())
             }
         # CPU - No CLI command available. Need to be implemented in a different way
         environment_counters['cpu'][0] = {
@@ -418,9 +433,9 @@ class MOSDriver(NetworkDriver):
 
                 tlv_dict = {
                     'parent_interface': py23_compat.text_type(interface),
-                    'remote_port': re.sub(r'\s*\([^\)]*\)\s*', '', info_dict.get('port id', '')),
+                    'remote_port': re.sub(r'\s*\([^)]*\)\s*', '', info_dict.get('port id', '')),
                     'remote_port_description': info_dict.get('port description', ''),
-                    'remote_chassis_id': re.sub(r'\s*\([^\)]*\)\s*',
+                    'remote_chassis_id': re.sub(r'\s*\([^)]*\)\s*',
                                                 '',
                                                 info_dict.get('chassis id', '')),
                     'remote_system_name': info_dict.get('system name', ''),
