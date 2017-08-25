@@ -199,8 +199,6 @@ class MOSDriver(NetworkDriver):
     def _load_config(self, filename=None, config=None, replace=False):
         if filename and config:
             raise ValueError("Cannot simultaneously set filename and config")
-        if replace:
-            raise NotImplementedError("Config replacement is broken")
 
         self._lock()
         if filename is None:
