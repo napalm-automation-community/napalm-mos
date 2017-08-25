@@ -1,2 +1,3 @@
 napalm_base
 git+https://github.com/arista-eosplus/pyeapi.git#egg=pyeapi
+netmiko
