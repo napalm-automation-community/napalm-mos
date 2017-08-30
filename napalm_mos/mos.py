@@ -139,9 +139,14 @@ class MOSDriver(NetworkDriver):
         self._ssh.disconnect()
 
     def is_alive(self):
-        return {
-            'is_alive': True
-        }
+        """If alive, send keep alive"""
+        if self._ssh is None:
+            return {'is_alive': False}
+        elif self._ssh.remote_conn.transport.is_active():
+            self._ssh.send_command(chr(0))
+            return {'is_alive': True}
+        else:
+            return {'is_alive': False}
 
     def get_facts(self):
         """Implementation of NAPALM method get_facts."""
@@ -205,7 +210,7 @@ class MOSDriver(NetworkDriver):
             with NamedTemporaryFile() as fd:
                 if isinstance(config, list):
                     config.insert(0, "configure")
-                    config = "\n".join(config)
+                    config = "\n".join(config) + "\n"
                 else:
                     config = "configure\n" + config
                 fd.write(config.encode('utf-8'))
