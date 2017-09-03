@@ -171,7 +171,7 @@ class MOSDriver(NetworkDriver):
             'hostname': hostname,
             'fqdn': fqdn,
             'vendor': 'Metamako',
-            'model': version['device'],
+            'model': re.sub(r'^[Mm]etamako ', '', version['device']),
             'serial_number': version['serialNumber'],
             'os_version': version['softwareImageVersion'],
             'uptime': int(uptime),
