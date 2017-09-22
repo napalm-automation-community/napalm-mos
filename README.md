@@ -5,3 +5,6 @@
 
 
 # napalm-mos
+
+This repository is a candidate for addition to the Github napalm-automation project,
+pending internal business and legal discussion.

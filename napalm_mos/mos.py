@@ -28,9 +28,14 @@ from __future__ import unicode_literals
 # std libs
 import re
 import ast
+import difflib
 import pyeapi
 
-from datetime import timedelta
+from datetime import timedelta, datetime
+from distutils.version import LooseVersion
+from tempfile import NamedTemporaryFile
+
+from netmiko import ConnectHandler
 
 from pyeapi.client import Node as EapiNode
 from pyeapi.eapilib import HttpsEapiConnection, HttpEapiConnection
@@ -42,7 +47,12 @@ from napalm_base.utils import string_parsers, py23_compat
 from napalm_base.exceptions import (
     ConnectionException,
     CommandErrorException,
+    MergeConfigException,
+    ReplaceConfigException,
+    SessionLockedException
 )
+
+from napalm_mos.file_copy import FileCopy, FileTransferError
 
 TRANSPORTS = {
     'https': HttpsEapiConnection,
@@ -74,6 +84,10 @@ class MOSDriver(NetworkDriver):
         self.username = username
         self.password = password
         self.timeout = timeout
+        self.config_session = None
+        self._current_config = None
+        self._replace_config = False
+        self._ssh = None
 
         if optional_args is None:
             optional_args = {}
@@ -105,28 +119,46 @@ class MOSDriver(NetworkDriver):
             if self.device is None:
                 self.device = EapiNode(connection, enablepwd=self.enablepwd)
 
-            self.device.run_commands(['show version'])
+            sw_version = self.device.run_commands(
+                    ['show version'])[0].get('softwareImageVersion', "0.0.0")
+            if LooseVersion(sw_version) < LooseVersion("0.14.1"):
+                raise ConnectionException("MOS Software Version 0.14.1 or better required")
+            # This is to get around user mismatch in API/FileCopy
+            if self._ssh is None:
+                self._ssh = ConnectHandler(device_type='cisco_ios', ip=self.hostname,
+                                           username=self.username, password=self.password)
+                self._ssh.enable()
         except ConnectionError as ce:
             raise ConnectionException(ce.message)
 
     def close(self):
         """Implementation of NAPALM method close."""
-        pass
+        if self.config_session is not None:
+            # Only doing this because discard_config is broke
+            self.commit_config()
+        self._ssh.disconnect()
 
     def is_alive(self):
-        return {
-            'is_alive': True
-        }
+        """If alive, send keep alive"""
+        if self._ssh is None:
+            return {'is_alive': False}
+        elif self._ssh.remote_conn.transport.is_active():
+            self._ssh.send_command(chr(0))
+            return {'is_alive': True}
+        else:
+            return {'is_alive': False}
 
     def get_facts(self):
         """Implementation of NAPALM method get_facts."""
-        commands = ['show version', 'show hostname', 'show interfaces status']
-        result = self.device.run_commands(commands)
+        commands_json = ['show version', 'show interfaces status']
+        commands_text = ['show hostname']
+        result_json = self.device.run_commands(commands_json, encoding='json')
+        result_text = self.device.run_commands(commands_text, encoding='text')
 
-        version = result[0]['output']
-        hostname = result[1]['output'].splitlines()[0].split(" ")[-1]
-        fqdn = result[1]['output'].splitlines()[1].split(" ")[-1]
-        interfaces = result[2]['output']['interfaces'].keys()
+        version = result_json[0]
+        hostname = result_text[0]['output'].splitlines()[0].split(" ")[-1]
+        fqdn = result_text[0]['output'].splitlines()[1].split(" ")[-1]
+        interfaces = result_json[1]['interfaces'].keys()
         interfaces = string_parsers.sorted_nicely(interfaces)
 
         u_match = re.match(self._RE_UPTIME, version['uptime']).groupdict()
@@ -139,17 +171,102 @@ class MOSDriver(NetworkDriver):
             'hostname': hostname,
             'fqdn': fqdn,
             'vendor': 'Metamako',
-            'model': version['device'],
+            'model': re.sub(r'^[Mm]etamako ', '', version['device']),
             'serial_number': version['serialNumber'],
             'os_version': version['softwareImageVersion'],
             'uptime': int(uptime),
             'interface_list': interfaces,
         }
 
+    def _lock(self):
+        if self.config_session is None:
+            self.config_session = "napalm_{}".format(datetime.now().microsecond)
+            commands = ["copy running-config flash:{}".format(self.config_session),
+                        "show running-config"]
+            for command in commands:
+                self._ssh.send_command(command)
+        if [k for k in self._get_sessions() if k != self.config_session]:
+            self.device.run_commands(["delete flash:{}".format(self.config_session)])
+            self.config_session = None
+            raise SessionLockedException('Session already in use')
+
+    def _unlock(self):
+        if self.config_session is not None:
+            self._ssh.send_command("bash rm -f /mnt/flash/{}".format(self.config_session))
+            self.config_session = None
+            self._replace_config = False
+
+    def _get_sessions(self):
+        return [l.split()[-1] for l in self.device.run_commands(
+            ["dir flash:"], encoding='text')[0]['output'].splitlines()
+                if "napalm_" in l.split()[-1]]
+
+    def _load_config(self, filename=None, config=None, replace=False):
+        if filename and config:
+            raise ValueError("Cannot simultaneously set filename and config")
+
+        self._lock()
+        if filename is None:
+            with NamedTemporaryFile() as fd:
+                if isinstance(config, list):
+                    config.insert(0, "configure")
+                    config = "\n".join(config) + "\n"
+                else:
+                    config = "configure\n" + config
+                fd.write(config.encode('utf-8'))
+                fd.flush()
+
+                with FileCopy(self, fd.name, '/mnt/flash/{}'.format(self.config_session),
+                              'put') as c:
+                    c.put_file()
+        else:
+            with FileCopy(self, filename, '/mnt/flash/{}'.format(self.config_session),
+                          'put') as c:
+                c.put_file()
+
+    def load_merge_candidate(self, filename=None, config=None):
+        self._load_config(filename=filename, config=config, replace=False)
+        self._replace_config = False
+
+    def load_replace_candidate(self, filename=None, config=None):
+        self._load_config(filename=filename, config=config, replace=True)
+        self._replace_config = True
+
+    def compare_config(self):
+        # There's no good way to do this yet
+        if self._replace_config:
+            return self._ssh.send_command("diff running-config flash:{}".format(
+                self.config_session))
+        else:
+            return self._ssh.send_command("bash cat /mnt/flash/{}".format(self.config_session))
+
+    def discard_config(self):
+        if self.config_session is not None:
+            self._unlock()
+
+    def commit_config(self):
+        if self.config_session is not None:
+            commands = ["delete flash:rollback-0", "copy running-config flash:rollback-0"]
+            if self.compare_config():
+                if self._replace_config:
+                    commands.append("copy flash:{} running-config ".format(self.config_session))
+                else:
+                    commands.append("bash /usr/bin/cli /mnt/flash/{}".format(self.config_session))
+            commands.append("copy running-config startup-config")
+            for command in commands:
+                self._ssh.send_command(command)
+            self._unlock()
+
+    def rollback(self):
+        commands = ["copy flash:rollback-0 running-config",
+                    "copy running-config startup-config"]
+        for command in commands:
+            self._ssh.send_command(command)
+
     def get_interfaces(self):
 
         def _parse_mm_speed(speed):
-            '''Parse the Metamako speed string from 'sh int status' into an Mbit/s int'''
+            """Parse the Metamako speed string from 'sh int status' into an Mbit/s int"""
 
             factormap = {
                 '': 1e-6,
@@ -168,13 +285,13 @@ class MOSDriver(NetworkDriver):
         commands = []
         commands.append('show interfaces status')
         commands.append('show interfaces description')
-        output = self.device.run_commands(commands)
+        output = self.device.run_commands(commands, encoding='json')
 
-        descriptions = {d['Port']: d['Description'] for d in output[1]['output']}
+        descriptions = {d['Port']: d['Description'] for d in output[1]}
 
         interfaces = {}
 
-        for interface, values in output[0]['output']['interfaces'].items():
+        for interface, values in output[0]['interfaces'].items():
             interfaces[interface] = {}
 
             # A L1 device doesn't really have a line protocol.
@@ -201,7 +318,7 @@ class MOSDriver(NetworkDriver):
     def get_lldp_neighbors(self):
         commands = []
         commands.append('show lldp neighbor')
-        output = self.device.run_commands(commands)[0]['output']
+        output = self.device.run_commands(commands, encoding='json')[0]
 
         lldp = {}
 
@@ -222,14 +339,14 @@ class MOSDriver(NetworkDriver):
 
     def get_interfaces_counters(self):
         commands = ['show interfaces counters', 'show interfaces counters errors']
-        output = self.device.run_commands(commands)
+        output = self.device.run_commands(commands, encoding='json')
         interface_counters = {}
-        errorsdict = output[1]['output']['interfaces']
-        for interface, counters in output[0]['output']['interfaces'].items():
+        errors_dict = output[1]['interfaces']
+        for interface, counters in output[0]['interfaces'].items():
             interface_counters[interface] = {}
             interface_counters[interface].update(
-                tx_errors=int(errorsdict.get(interface, {}).get('tx', -1).replace(',', '')),
-                rx_errors=int(errorsdict.get(interface, {}).get('tx', -1).replace(',', '')),
+                tx_errors=int(errors_dict.get(interface, {}).get('tx', -1).replace(',', '')),
+                rx_errors=int(errors_dict.get(interface, {}).get('tx', -1).replace(',', '')),
                 tx_discards=-1,  # Metamako discards?
                 rx_discards=-1,
                 tx_octets=int(counters.get('txoctets', -1).replace(',', '')),
@@ -246,7 +363,7 @@ class MOSDriver(NetworkDriver):
     def get_environment(self):
 
         commands = ['show environment all']
-        output = self.device.run_commands(commands)[0]['output']
+        output = self.device.run_commands(commands, encoding='json')[0]
         environment_counters = {
             'fans': {},
             'temperature': {},
@@ -272,9 +389,9 @@ class MOSDriver(NetworkDriver):
         psu_dict = output['systemPower']['powerSupplies']
         for psu, data in output['systemPower']['powerOutput'].items():
             environment_counters['power'][psu] = {
-                'status': float(re.match(r'^([\d\.]+)', data['inputVoltage']).group()) != 0.0,
-                'capacity': float(re.match(r'^([\d\.]+)', psu_dict[psu]['capacity']).group()),
-                'output': float(re.match(r'^([\d\.]+)', data['outputPower']).group())
+                'status': float(re.match(r'^([\d.]+)', data['inputVoltage']).group()) != 0.0,
+                'capacity': float(re.match(r'^([\d.]+)', psu_dict[psu]['capacity']).group()),
+                'output': float(re.match(r'^([\d.]+)', data['outputPower']).group())
             }
         # CPU - No CLI command available. Need to be implemented in a different way
         environment_counters['cpu'][0] = {
@@ -293,7 +410,7 @@ class MOSDriver(NetworkDriver):
         lldp_neighbors_out = {}
 
         commands = ['show lldp neighbor {} verbose'.format(interface)]
-        neighbors_str = self.device.run_commands(commands)[0]['output']
+        neighbors_str = self.device.run_commands(commands, encoding='text')[0]['output']
 
         interfaces_split = re.split(r'^\*\s(\S+)$', neighbors_str, flags=re.MULTILINE)[1:]
         interface_list = zip(*(iter(interfaces_split),) * 2)
@@ -318,10 +435,10 @@ class MOSDriver(NetworkDriver):
                 enabled_capab = capabilities.get('enabled', '').replace(',', ', ')
 
                 tlv_dict = {
-                    'parent_interface': interface,
-                    'remote_port': re.sub(r'\s*\([^\)]*\)\s*', '', info_dict.get('port id', '')),
+                    'parent_interface': py23_compat.text_type(interface),
+                    'remote_port': re.sub(r'\s*\([^)]*\)\s*', '', info_dict.get('port id', '')),
                     'remote_port_description': info_dict.get('port description', ''),
-                    'remote_chassis_id': re.sub(r'\s*\([^\)]*\)\s*',
+                    'remote_chassis_id': re.sub(r'\s*\([^)]*\)\s*',
                                                 '',
                                                 info_dict.get('chassis id', '')),
                     'remote_system_name': info_dict.get('system name', ''),
@@ -367,7 +484,7 @@ class MOSDriver(NetworkDriver):
         commands = ['show arp']
 
         try:
-            output = self.device.run_commands(commands)[0]['output']
+            output = self.device.run_commands(commands, encoding='text')[0]['output']
         except pyeapi.eapilib.CommandError:
             return []
 
@@ -460,8 +577,8 @@ class MOSDriver(NetworkDriver):
             'show snmp contact',
             'show snmp community'
         ]
-        snmp_config = self.device.run_commands(commands, encoding='json')
-        snmp_dict['chassis_id'] = snmp_config[0]['output']
+        snmp_config = self.device.run_commands(commands, encoding='text')
+        snmp_dict['chassis_id'] = snmp_config[0]['output'].replace('Chassis: ', '').strip()
         snmp_dict['location'] = snmp_config[1]['output'].replace('Location: ', '').strip()
         snmp_dict['contact'] = snmp_config[2]['output'].replace('Contact: ', '').strip()
 
@@ -485,7 +602,7 @@ class MOSDriver(NetworkDriver):
 
         output = (
             self.device.run_commands(
-                command, encoding='json')[0]['output']['interfaces'])
+                command, encoding='json')[0]['interfaces'])
 
         # Formatting data into return data structure
         optics_detail = {}
