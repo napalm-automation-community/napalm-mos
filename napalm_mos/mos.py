@@ -28,7 +28,6 @@ from __future__ import unicode_literals
 # std libs
 import re
 import ast
-import difflib
 import pyeapi
 
 from datetime import timedelta, datetime
@@ -47,12 +46,10 @@ from napalm_base.utils import string_parsers, py23_compat
 from napalm_base.exceptions import (
     ConnectionException,
     CommandErrorException,
-    MergeConfigException,
-    ReplaceConfigException,
     SessionLockedException
 )
 
-from napalm_mos.file_copy import FileCopy, FileTransferError
+from napalm_mos.file_copy import FileCopy
 
 TRANSPORTS = {
     'https': HttpsEapiConnection,
