@@ -34,8 +34,22 @@ class PatchedMOSDriver(mos.MOSDriver):
         """Patched MOS Driver constructor."""
         super().__init__(hostname, username, password, timeout, optional_args)
 
-        self.patched_attrs = ['device']
+        self.patched_attrs = ['device', ]
         self.device = FakeMOSDevice()
+
+    def disconnect(self):
+        pass
+
+    def is_alive(self):
+        return {
+            "is_alive": True
+        }
+
+    def open(self):
+        pass
+
+    def close(self):
+        pass
 
 
 class FakeMOSDevice(BaseTestDouble):
