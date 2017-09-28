@@ -119,7 +119,7 @@ class MOSDriver(NetworkDriver):
             sw_version = self.device.run_commands(
                     ['show version'])[0].get('softwareImageVersion', "0.0.0")
             if LooseVersion(sw_version) < LooseVersion("0.14.1"):
-                raise ConnectionException("MOS Software Version 0.14.1 or better required")
+                raise NotImplementedError("MOS Software Version 0.14.1 or better required")
             # This is to get around user mismatch in API/FileCopy
             if self._ssh is None:
                 self._ssh = ConnectHandler(device_type='cisco_ios', ip=self.hostname,
