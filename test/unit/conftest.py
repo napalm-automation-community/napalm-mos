@@ -37,9 +37,6 @@ class PatchedMOSDriver(mos.MOSDriver):
         self.patched_attrs = ['device', ]
         self.device = FakeMOSDevice()
 
-    def disconnect(self):
-        pass
-
     def is_alive(self):
         return {
             "is_alive": True
