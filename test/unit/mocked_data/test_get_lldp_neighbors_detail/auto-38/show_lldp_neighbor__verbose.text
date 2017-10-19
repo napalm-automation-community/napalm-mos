@@ -1,0 +1,17 @@
+* et1
+  src: (mac address) 74:a0:2f:1c:1f:91
+  received: Thu Oct 19 13:58:44 2017 (0:00:14)
+  chassis id: (mac address) 74:a0:2f:1c:1f:91
+  port id: (interface name) Ethernet1/10
+  time to live: 120 secs
+  port description: P:0000:0000,17,18
+  system name: nx-os
+  system description: Cisco Nexus Operating System (NX-OS) Software 6.0(2)A4(3)
+TAC support: http://www.cisco.com/tac
+Copyright (c) 2002-2014, Cisco Systems, Inc. All rights reserved.
+  system capability: {'enabled': 'mac-bridge,router', 'capabilities': 'mac-bridge,router'}
+  management address: {'subtype': 6, 'length': 7, 'address': '74a02f1c1f91'}
+  OUI (00-01-42) 1: 01
+  end of lldpdu:
+
+

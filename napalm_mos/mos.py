@@ -420,7 +420,11 @@ class MOSDriver(NetworkDriver):
                 info_dict = {}
 
                 for info_line in neighbor_str.strip().splitlines():
-                    key, value = info_line.split(':', 1)
+                    try:
+                        key, value = info_line.split(':', 1)
+                    except ValueError:
+                        # Extremely long lines wrap
+                        info_dict[key.strip()] = "{} {}".format(info_dict[key.strip()], info_line)
                     info_dict[key.strip()] = value.strip()
 
                 # System capabilities
