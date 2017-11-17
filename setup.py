@@ -12,7 +12,7 @@ reqs = [str(ir.req) for ir in install_reqs]
 
 setup(
     name="napalm-mos",
-    version="0.1.4",
+    version="2.0.0",
     packages=find_packages(),
     author="Benny Holmgren, Brandon Ewing",
     author_email="benny@holmgren.id.au, brandon.ewing@warningg.com",
