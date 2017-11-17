@@ -23,7 +23,7 @@ setup(
         'Operating System :: POSIX :: Linux',
         'Operating System :: MacOS',
     ],
-    url="https://github.com/napalm-automation/napalm-mos",
+    url="https://github.com/napalm-automation-community/napalm-mos",
     include_package_data=True,
     install_requires=reqs,
 )
