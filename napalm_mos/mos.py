@@ -40,10 +40,10 @@ from pyeapi.client import Node as EapiNode
 from pyeapi.eapilib import HttpsEapiConnection, HttpEapiConnection
 from pyeapi.eapilib import ConnectionError
 
-import napalm_base.helpers
-from napalm_base.base import NetworkDriver
-from napalm_base.utils import string_parsers, py23_compat
-from napalm_base.exceptions import (
+import napalm.base.helpers
+from napalm.base import NetworkDriver
+from napalm.base.utils import string_parsers, py23_compat
+from napalm.base.exceptions import (
     ConnectionException,
     CommandErrorException,
     SessionLockedException
@@ -500,8 +500,8 @@ class MOSDriver(NetworkDriver):
                 arp_table.append(
                     {
                         'interface': interface,
-                        'mac': napalm_base.helpers.mac(mac_raw),
-                        'ip': napalm_base.helpers.ip(ip),
+                        'mac': napalm.base.helpers.mac(mac_raw),
+                        'ip': napalm.base.helpers.ip(ip),
                         'age': age
                     }
                 )
