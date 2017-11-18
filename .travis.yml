@@ -1,0 +1,21 @@
+language: python
+python:
+- 2.7
+- 3.4
+- 3.5
+- 3.6
+install:
+- pip install tox-travis
+- pip install coveralls
+deploy:
+  provider: pypi
+  user: bewing
+  on:
+    tags: true
+    branch: master
+  password:
+    secure: B1T2RHXIN3WFu7mdlz4ZkRuCIfuitlL9NTP4/Ia9zCxBb96fu8Rfa3TU3NoRGzXN0iOf47jm9AYeuj05CNCMOii0lBfapGeKlyucapThdtxpkmX5TLr80TI+QWUtj4n1JSWGFZke4TUEUSr4MC7/9FAmPdLJTIwhmXjImgWnjWMXgSpEAbSEvXJWDM1TajKRF5SgCfP+GYN7jJTTAHOJ3oZSLocR6SDm2D7LWc8p3EksPurXrIytAyPkVWkvgrl2IFVYxjXNjDNiALzi4JIDY0JdW89z9WLI8zbHLCjyg5WLSPUGcL/4IEjcyfQZ8sEIKn4/knEumqIVgvoLmwWElg/GqJ6WhS/yRwK3ULplles+iSZO1s26NG8uOB7ZRONsnSSz+/CJxAzUt/ASy6AbiFt0waX/U+xX1/smWCgWDCJENYELH41KgA/zf1kwfThG8JEv7si9/NoTamOggHIihRbAcS1jzc3BXmP+gTFT/nunePVjkyO9O+EMy9ZuI65o/Tw9nGkOUlafmqbM879zPM6fwMdYw+3UoS11OJ/ZtP621EW/lH/Xaww/G5ps25sxa6c2/S7j7q0lcnfSzdTA6S3hM363cDKVFr3hJ0dq596G+8L95SUpwOXxo3twFJmnog96IXLezMuSqdHhIuc7ylC/AwFInJimKbGerqa2cws=
+script:
+- tox
+after_success:
+- coveralls
