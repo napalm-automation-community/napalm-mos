@@ -209,7 +209,7 @@ class MOSDriver(NetworkDriver):
                     config.insert(0, "configure")
                     config = "\n".join(config) + "\n"
                 else:
-                    config = "configure\n" + config
+                    config = "configure\n" + config + "\n"
                 fd.write(config.encode('utf-8'))
                 fd.flush()
 
