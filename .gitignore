@@ -62,3 +62,11 @@ target/
 
 #Ipython Notebook
 .ipynb_checkpoints
+
+# Developer stuff
+.mr.developer.cfg
+.project
+.pydevproject
+.idea
+*.iml
+*.komodoproject
