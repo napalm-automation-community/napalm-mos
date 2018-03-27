@@ -134,6 +134,7 @@ class MOSDriver(NetworkDriver):
             # Only doing this because discard_config is broke
             self.commit_config()
         self._ssh.disconnect()
+        self._ssh = None
 
     def is_alive(self):
         """If alive, send keep alive"""
