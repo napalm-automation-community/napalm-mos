@@ -1,18 +1,14 @@
 """setup.py file."""
-
-import uuid
-
 from setuptools import setup, find_packages
-from pip.req import parse_requirements
 
 __author__ = 'Benny Holmgren <benny@holmgren.id.au>'
 
-install_reqs = parse_requirements('requirements.txt', session=uuid.uuid1())
-reqs = [str(ir.req) for ir in install_reqs]
+with open("requirements.txt", "r") as fs:
+    reqs = [r for r in fs.read().splitlines() if (len(r) > 0 and not r.startswith("#"))]
 
 setup(
     name="napalm-mos",
-    version="2.0.2",
+    version="2.0.3",
     packages=find_packages(),
     author="Benny Holmgren, Brandon Ewing",
     author_email="benny@holmgren.id.au, brandon.ewing@warningg.com",
