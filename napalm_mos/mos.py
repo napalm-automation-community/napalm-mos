@@ -617,20 +617,19 @@ class MOSDriver(NetworkDriver):
 
             # Defaulting avg, min, max values to 0.0 since device does not
             # return these values
-            
             try:
                 rxpwr = float(port_values['rxPwr'])
-            except:
+            except ValueError:
                 rxpwr = 0.0
 
             try:
                 txpwr = float(port_values['txPwr'])
-            except:
+            except ValueError:
                 txpwr = 0.0
 
             try:
                 txbias = float(port_values['txBias'])
-            except:
+            except ValueError:
                 txbias = 0.0
 
             optic_states = {
@@ -659,7 +658,6 @@ class MOSDriver(NetworkDriver):
 
             port_detail['physical_channels']['channel'].append(optic_states)
             optics_detail[port] = port_detail
-        
         return optics_detail
 
     def get_config(self, retrieve="all"):
