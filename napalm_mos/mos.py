@@ -242,7 +242,9 @@ class MOSDriver(NetworkDriver):
         if self.config_session is not None:
             self._unlock()
 
-    def commit_config(self):
+    def commit_config(self, message=""):
+        if message:
+            raise NotImplementedError('Commit message not implemented for this platform')
         if self.config_session is not None:
             commands = ["delete flash:rollback-0", "copy running-config flash:rollback-0"]
             if self.compare_config():

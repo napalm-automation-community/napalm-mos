@@ -1,4 +1,4 @@
-napalm>=2.0.0
+napalm>=2.3.2
 pyeapi>=0.8.1
 netmiko
 # Workaround for napalm requirements, fixed in napalm 2.1.0
