@@ -242,7 +242,9 @@ class MOSDriver(NetworkDriver):
         if self.config_session is not None:
             self._unlock()
 
-    def commit_config(self):
+    def commit_config(self, message=""):
+        if message:
+            raise NotImplementedError('Commit message not implemented for this platform')
         if self.config_session is not None:
             commands = ["delete flash:rollback-0", "copy running-config flash:rollback-0"]
             if self.compare_config():
@@ -617,26 +619,38 @@ class MOSDriver(NetworkDriver):
 
             # Defaulting avg, min, max values to 0.0 since device does not
             # return these values
+            try:
+                rxpwr = float(port_values['rxPwr'])
+            except ValueError:
+                rxpwr = 0.0
+
+            try:
+                txpwr = float(port_values['txPwr'])
+            except ValueError:
+                txpwr = 0.0
+
+            try:
+                txbias = float(port_values['txBias'])
+            except ValueError:
+                txbias = 0.0
+
             optic_states = {
                 'index': 0,
                 'state': {
                     'input_power': {
-                        'instant': (port_values['rxPwr']
-                                    if isinstance(port_values.get("rxPwr"), float) else 0.0),
+                        'instant': rxpwr,
                         'avg': 0.0,
                         'min': 0.0,
                         'max': 0.0
                     },
                     'output_power': {
-                        'instant': (port_values['txPwr']
-                                    if isinstance(port_values.get("txPwr"), float) else 0.0),
+                        'instant': txpwr,
                         'avg': 0.0,
                         'min': 0.0,
                         'max': 0.0
                     },
                     'laser_bias_current': {
-                        'instant': (port_values['txBias']
-                                    if isinstance(port_values.get("txBias"), float) else 0.0),
+                        'instant': txbias,
                         'avg': 0.0,
                         'min': 0.0,
                         'max': 0.0
@@ -646,7 +660,6 @@ class MOSDriver(NetworkDriver):
 
             port_detail['physical_channels']['channel'].append(optic_states)
             optics_detail[port] = port_detail
-
         return optics_detail
 
     def get_config(self, retrieve="all"):
