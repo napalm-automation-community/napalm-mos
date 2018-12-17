@@ -8,7 +8,7 @@ with open("requirements.txt", "r") as fs:
 
 setup(
     name="napalm-mos",
-    version="2.0.4",
+    version="2.0.5",
     packages=find_packages(),
     author="Benny Holmgren, Brandon Ewing",
     author_email="benny@holmgren.id.au, brandon.ewing@warningg.com",
