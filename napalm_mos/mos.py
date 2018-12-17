@@ -42,6 +42,7 @@ from pyeapi.eapilib import ConnectionError
 
 import napalm.base.helpers
 from napalm.base import NetworkDriver
+from napalm.base.netmiko_helpers import netmiko_args
 from napalm.base.utils import string_parsers, py23_compat
 from napalm.base.exceptions import (
     ConnectionException,
@@ -99,6 +100,8 @@ class MOSDriver(NetworkDriver):
         self.path = optional_args.get('path', '/command-api')
         self.enablepwd = optional_args.get('enable_password', '')
 
+        self.netmiko_args = netmiko_args(optional_args)
+
     def open(self):
         """Implementation of NAPALM method open."""
         if self.transport not in TRANSPORTS:
@@ -123,7 +126,8 @@ class MOSDriver(NetworkDriver):
             # This is to get around user mismatch in API/FileCopy
             if self._ssh is None:
                 self._ssh = ConnectHandler(device_type='cisco_ios', ip=self.hostname,
-                                           username=self.username, password=self.password)
+                                           username=self.username, password=self.password,
+                                           timeout=self.timeout, **self.netmiko_args)
                 self._ssh.enable()
         except ConnectionError as ce:
             raise ConnectionException(ce.message)
