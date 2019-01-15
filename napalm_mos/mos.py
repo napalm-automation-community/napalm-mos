@@ -26,36 +26,26 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 # std libs
-import re
 import ast
+import difflib
 import pyeapi
+import re
+import time
 
 from datetime import timedelta, datetime
 from distutils.version import LooseVersion
-from tempfile import NamedTemporaryFile
-
-from netmiko import ConnectHandler
 
 from pyeapi.client import Node as EapiNode
-from pyeapi.eapilib import HttpsEapiConnection, HttpEapiConnection
 from pyeapi.eapilib import ConnectionError
 
 import napalm.base.helpers
 from napalm.base import NetworkDriver
-from napalm.base.netmiko_helpers import netmiko_args
 from napalm.base.utils import string_parsers, py23_compat
 from napalm.base.exceptions import (
     ConnectionException,
     CommandErrorException,
     SessionLockedException
 )
-
-from napalm_mos.file_copy import FileCopy
-
-TRANSPORTS = {
-    'https': HttpsEapiConnection,
-    'http':  HttpEapiConnection,
-}
 
 
 class MOSDriver(NetworkDriver):
@@ -87,48 +77,48 @@ class MOSDriver(NetworkDriver):
         self._replace_config = False
         self._ssh = None
 
-        if optional_args is None:
-            optional_args = {}
+        self._process_optional_args(optional_args or {})
 
-        self.transport = optional_args.get('transport', 'https')
+    def _process_optional_args(self, optional_args):
+        self.enablepwd = optional_args.pop("enable_password", "")
 
-        if self.transport == 'https':
-            self.port = optional_args.get('port', 443)
-        else:
-            self.port = optional_args.get('port', 80)
+        transport = optional_args.get(
+            "transport", optional_args.get("eos_transport", "https")
+        )
+        try:
+            self.transport_class = pyeapi.client.TRANSPORTS[transport]
+        except KeyError:
+            raise ConnectionException("Unknown transport: {}".format(self.transport))
+        init_args = py23_compat.argspec(self.transport_class.__init__)[0]
+        init_args.pop(0)  # Remove "self"
+        init_args.append("enforce_verification")  # Not an arg for unknown reason
 
-        self.path = optional_args.get('path', '/command-api')
-        self.enablepwd = optional_args.get('enable_password', '')
+        filter_args = ["host", "username", "password", "timeout"]
 
-        self.netmiko_args = netmiko_args(optional_args)
+        self.eapi_kwargs = {
+            k: v
+            for k, v in optional_args.items()
+            if k in init_args and k not in filter_args
+        }
 
     def open(self):
         """Implementation of NAPALM method open."""
-        if self.transport not in TRANSPORTS:
-            raise TypeError('invalid transport specified')
-        klass = TRANSPORTS[self.transport]
         try:
-            connection = klass(
-                self.hostname,
-                port=self.port,
-                path=self.path,
+            connection = self.transport_class(
+                host=self.hostname,
                 username=self.username,
                 password=self.password,
                 timeout=self.timeout,
+                **self.eapi_kwargs,
             )
             if self.device is None:
                 self.device = EapiNode(connection, enablepwd=self.enablepwd)
 
             sw_version = self.device.run_commands(
                     ['show version'])[0].get('softwareImageVersion', "0.0.0")
-            if LooseVersion(sw_version) < LooseVersion("0.14.1"):
-                raise NotImplementedError("MOS Software Version 0.14.1 or better required")
+            if LooseVersion(sw_version) < LooseVersion("0.17.0"):
+                raise NotImplementedError("MOS Software Version 0.17.0 or better required")
             # This is to get around user mismatch in API/FileCopy
-            if self._ssh is None:
-                self._ssh = ConnectHandler(device_type='cisco_ios', ip=self.hostname,
-                                           username=self.username, password=self.password,
-                                           timeout=self.timeout, **self.netmiko_args)
-                self._ssh.enable()
         except ConnectionError as ce:
             raise ConnectionException(ce.message)
 
@@ -136,19 +126,10 @@ class MOSDriver(NetworkDriver):
         """Implementation of NAPALM method close."""
         if self.config_session is not None:
             # Only doing this because discard_config is broke
-            self.commit_config()
-        self._ssh.disconnect()
-        self._ssh = None
+            self.discard_config()
 
     def is_alive(self):
-        """If alive, send keep alive"""
-        if self._ssh is None:
-            return {'is_alive': False}
-        elif self._ssh.remote_conn.transport.is_active():
-            self._ssh.send_command(chr(0))
-            return {'is_alive': True}
-        else:
-            return {'is_alive': False}
+        return {'is_alive': True}
 
     def get_facts(self):
         """Implementation of NAPALM method get_facts."""
@@ -185,16 +166,15 @@ class MOSDriver(NetworkDriver):
             self.config_session = "napalm_{}".format(datetime.now().microsecond)
             commands = ["copy running-config flash:{}".format(self.config_session),
                         "show running-config"]
-            for command in commands:
-                self._ssh.send_command(command)
-        if [k for k in self._get_sessions() if k != self.config_session]:
+            self.device.run_commands(commands)
+        if any(k for k in self._get_sessions() if k != self.config_session):
             self.device.run_commands(["delete flash:{}".format(self.config_session)])
             self.config_session = None
-            raise SessionLockedException('Session already in use')
+            raise SessionLockedException('Session already in use - session file present on flash!')
 
     def _unlock(self):
         if self.config_session is not None:
-            self._ssh.send_command("bash rm -f /mnt/flash/{}".format(self.config_session))
+            self.device.run_commands(["delete flash:{}".format(self.config_session)])
             self.config_session = None
             self._replace_config = False
 
@@ -206,66 +186,83 @@ class MOSDriver(NetworkDriver):
     def _load_config(self, filename=None, config=None, replace=False):
         if filename and config:
             raise ValueError("Cannot simultaneously set filename and config")
-
         self._lock()
-        if filename is None:
-            with NamedTemporaryFile() as fd:
-                if isinstance(config, list):
-                    config.insert(0, "configure")
-                    config = "\n".join(config) + "\n"
-                else:
-                    config = "configure\n" + config + "\n"
-                fd.write(config.encode('utf-8'))
-                fd.flush()
 
-                with FileCopy(self, fd.name, '/mnt/flash/{}'.format(self.config_session),
-                              'put') as c:
-                    c.put_file()
+        self._candidate = ["delete flash:rollback-0", "copy running-config flash:rollback-0"]
+        if replace:
+            self._candidate.append("copy default-config running-config")
+            self._replace_config = True
+        self._candidate.append("configure terminal")
+
+        if filename is not None:
+            with open(filename, "r") as f:
+                lines = f.readlines()
         else:
-            with FileCopy(self, filename, '/mnt/flash/{}'.format(self.config_session),
-                          'put') as c:
-                c.put_file()
+            if isinstance(config, list):
+                lines = config
+            else:
+                lines = config.splitlines()
+
+        for line in lines:
+            if line.strip() == "":
+                continue
+            if line.startswith("!"):
+                continue
+            self._candidate.append(line)
+
+        self._candidate.append("end")
+
+    def _wait_for_reload(self, timeout=300):
+        end_timeout = time.time() + timeout
+        while True:
+            time.sleep(10)
+            try:
+                self.device.run_commands(["show version"])
+                break
+            except pyeapi.eapilib.ConnectionError:
+                if time.time() > end_timeout:
+                    raise
 
     def load_merge_candidate(self, filename=None, config=None):
         self._load_config(filename=filename, config=config, replace=False)
-        self._replace_config = False
 
     def load_replace_candidate(self, filename=None, config=None):
         self._load_config(filename=filename, config=config, replace=True)
-        self._replace_config = True
 
     def compare_config(self):
         # There's no good way to do this yet
         if self._replace_config:
-            return self._ssh.send_command("diff running-config flash:{}".format(
-                self.config_session))
+            cur = self.get_config("running")["running"].splitlines()[4:]
+            return '\n'.join(difflib.unified_diff(cur, self._candidate[4:]))
         else:
-            return self._ssh.send_command("bash cat /mnt/flash/{}".format(self.config_session))
+            return '\n'.join(self._candidate[3:])
 
     def discard_config(self):
         if self.config_session is not None:
+            self._candidate = None
             self._unlock()
 
     def commit_config(self, message=""):
         if message:
             raise NotImplementedError('Commit message not implemented for this platform')
-        if self.config_session is not None:
-            commands = ["delete flash:rollback-0", "copy running-config flash:rollback-0"]
-            if self.compare_config():
-                if self._replace_config:
-                    commands.append("copy flash:{} running-config ".format(self.config_session))
-                else:
-                    commands.append("bash /usr/bin/cli /mnt/flash/{}".format(self.config_session))
-            commands.append("copy running-config startup-config")
-            for command in commands:
-                self._ssh.send_command(command)
-            self._unlock()
+        if self.config_session is not None and self._candidate:
+            if self._replace_config:
+                try:
+                    self.device.run_commands(
+                        self._candidate + ["copy running-config startup-config"]
+                    )
+                except pyeapi.eapilib.ConnectionError:
+                    self._wait_for_reload()
+            else:
+                self.device.run_commands(self._candidate + ["copy running-config startup-config"])
+
+        self._unlock()
 
     def rollback(self):
         commands = ["copy flash:rollback-0 running-config",
                     "copy running-config startup-config"]
         for command in commands:
-            self._ssh.send_command(command)
+            self.device.run_commands(command)
 
     def get_interfaces(self):
 
@@ -286,9 +283,7 @@ class MOSDriver(NetworkDriver):
 
             return 0
 
-        commands = []
-        commands.append('show interfaces status')
-        commands.append('show interfaces description')
+        commands = ["show interfaces status", "show interfaces description"]
         output = self.device.run_commands(commands, encoding='json')
 
         descriptions = {d['Port']: d['Description'] for d in output[1]}
@@ -489,7 +484,7 @@ class MOSDriver(NetworkDriver):
 
         arp_table = []
 
-        commands = ['show arp']
+        commands = ['show arp numeric']
 
         try:
             output = self.device.run_commands(commands, encoding='text')[0]['output']
