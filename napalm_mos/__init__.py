@@ -17,7 +17,7 @@ import pkg_resources
 from napalm_mos.mos import MOSDriver
 
 try:
-    __version__ = pkg_resources.get_distribution('napalm-mos').version
+    __version__ = pkg_resources.get_distribution("napalm-mos").version
 except pkg_resources.DistributionNotFound:
     __version__ = "Not installed"
 

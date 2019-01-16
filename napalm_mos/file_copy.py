@@ -10,7 +10,9 @@ class FileTransferError(Exception):
 
 
 class FileCopy(object):
-    def __init__(self, driver, source_file, dest_file=None, direction='put', file_system=None):
+    def __init__(
+        self, driver, source_file, dest_file=None, direction="put", file_system=None
+    ):
         if direction not in ["put", "get"]:
             raise ValueError("Invalid direction {}".format(direction))
 
@@ -19,8 +21,12 @@ class FileCopy(object):
         self.dest_file = dest_file or os.path.basename(source_file)
         self.direction = direction
         self.file_system = file_system
-        self._ssh = ConnectHandler(device_type='cisco_ios', ip=driver.hostname,
-                                   username=driver.username, password=driver.password)
+        self._ssh = ConnectHandler(
+            device_type="cisco_ios",
+            ip=driver.hostname,
+            username=driver.username,
+            password=driver.password,
+        )
         self._ssh.enable()
 
     def __enter__(self):
@@ -77,10 +83,10 @@ class FileCopy(object):
         if os.path.isfile(fname):
             m = hashlib.md5()
             with open(fname, "rb") as f:
-                buf = f.read(2**20)
+                buf = f.read(2 ** 20)
                 while buf:
                     m.update(buf)
-                    buf = f.read(2**20)
+                    buf = f.read(2 ** 20)
             return m.hexdigest()
 
     def _remote_file_md5(self):
@@ -88,7 +94,9 @@ class FileCopy(object):
             fname = self.dest_file
         else:
             fname = self.source_file
-        return self._ssh.send_command("bash /usr/bin/md5sum {}".format(fname)).split()[0]
+        return self._ssh.send_command("bash /usr/bin/md5sum {}".format(fname)).split()[
+            0
+        ]
 
     def _compare_md5(self):
         return self._local_file_md5() == self._remote_file_md5()
@@ -99,9 +107,13 @@ class FileCopy(object):
 
     def _remote_space_available(self):
         path = os.path.dirname(self.dest_file)
-        if path == '':
-            path = '.'
-        return int(self._ssh.send_command("bash df -B1 {}".format(path)).splitlines()[1].split()[3])
+        if path == "":
+            path = "."
+        return int(
+            self._ssh.send_command("bash df -B1 {}".format(path))
+            .splitlines()[1]
+            .split()[3]
+        )
 
     def _verify_space_available(self):
         if self.direction == "put":
