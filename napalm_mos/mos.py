@@ -130,7 +130,8 @@ class MOSDriver(NetworkDriver):
                 raise NotImplementedError(
                     "MOS Software Version 0.17.0 or better required"
                 )
-            # This is to get around user mismatch in API/FileCopy
+            elif LooseVersion(sw_version) < LooseVersion("0.19.2"):
+                self._MOSH_10017 = True
         except ConnectionError as ce:
             raise ConnectionException(ce.message)
 
@@ -222,7 +223,7 @@ class MOSDriver(NetworkDriver):
 
         if filename is not None:
             with open(filename, "r") as f:
-                lines = f.readlines()
+                self._candidate = f.readlines()
         else:
             if isinstance(config, list):
                 lines = config
@@ -237,6 +238,10 @@ class MOSDriver(NetworkDriver):
             self._candidate.append(line)
 
         self._candidate.append("end")
+        if any("source mac" in l for l in self._candidate) and self._MOSH_10017:
+            raise CommandErrorException(
+                "Cannot set source mac in MOS versions prior to 0.19.2"
+            )
 
     def _wait_for_reload(self, timeout=300):
         end_timeout = time.time() + timeout
