@@ -85,11 +85,13 @@ class MOSDriver(NetworkDriver):
         self._current_config = None
         self._replace_config = False
         self._ssh = None
+        self._MOSH_10017 = False
 
         self._process_optional_args(optional_args or {})
 
     def _process_optional_args(self, optional_args):
         self.enablepwd = optional_args.pop("enable_password", "")
+        self.config_timeout = optional_args.pop("config_timeout", 300)
 
         transport = optional_args.get(
             "transport", optional_args.get("eos_transport", "https")
@@ -126,11 +128,12 @@ class MOSDriver(NetworkDriver):
             sw_version = self.device.run_commands(["show version"])[0].get(
                 "softwareImageVersion", "0.0.0"
             )
-            if LooseVersion(sw_version) < LooseVersion("0.17.0"):
+            if LooseVersion(sw_version) < LooseVersion("0.17.9"):
                 raise NotImplementedError(
-                    "MOS Software Version 0.17.0 or better required"
+                    "MOS Software Version 0.17.9 or better required"
                 )
-            elif LooseVersion(sw_version) < LooseVersion("0.19.2"):
+            # Waiting for fixed release
+            if LooseVersion(sw_version) < LooseVersion("0.19.2"):
                 self._MOSH_10017 = True
         except ConnectionError as ce:
             raise ConnectionException(ce.message)
@@ -180,10 +183,7 @@ class MOSDriver(NetworkDriver):
     def _lock(self):
         if self.config_session is None:
             self.config_session = "napalm_{}".format(datetime.now().microsecond)
-            commands = [
-                "copy running-config flash:{}".format(self.config_session),
-                "show running-config",
-            ]
+            commands = ["copy running-config flash:{}".format(self.config_session)]
             self.device.run_commands(commands)
         if any(k for k in self._get_sessions() if k != self.config_session):
             self.device.run_commands(["delete flash:{}".format(self.config_session)])
@@ -242,8 +242,11 @@ class MOSDriver(NetworkDriver):
             raise CommandErrorException(
                 "Cannot set source mac in MOS versions prior to 0.19.2"
             )
+        if any("banner motd" in l for l in self._candidate):
+            raise CommandErrorException("Cannot set banner via JSONRPC API")
 
-    def _wait_for_reload(self, timeout=300):
+    def _wait_for_reload(self, timeout=None):
+        timeout = timeout or self.config_timeout
         end_timeout = time.time() + timeout
         while True:
             time.sleep(10)
