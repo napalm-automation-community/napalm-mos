@@ -213,7 +213,6 @@ class MOSDriver(NetworkDriver):
         self._lock()
 
         self._candidate = [
-            "delete flash:rollback-0",
             "copy running-config flash:rollback-0",
         ]
         if replace:
