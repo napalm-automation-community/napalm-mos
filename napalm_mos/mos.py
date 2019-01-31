@@ -212,9 +212,7 @@ class MOSDriver(NetworkDriver):
             raise ValueError("Cannot simultaneously set filename and config")
         self._lock()
 
-        self._candidate = [
-            "copy running-config flash:rollback-0",
-        ]
+        self._candidate = ["copy running-config flash:rollback-0"]
         if replace:
             self._candidate.append("copy default-config running-config")
             self._replace_config = True
