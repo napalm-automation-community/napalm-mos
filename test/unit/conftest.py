@@ -9,16 +9,18 @@ from napalm.base.test.double import BaseTestDouble
 from napalm_mos import mos
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope="class")
 def set_device_parameters(request):
     """Set up the class."""
+
     def fin():
         request.cls.device.close()
+
     request.addfinalizer(fin)
 
     request.cls.driver = mos.MOSDriver
     request.cls.patched_driver = PatchedMOSDriver
-    request.cls.vendor = 'mos'
+    request.cls.vendor = "mos"
     parent_conftest.set_device_parameters(request)
 
 
@@ -34,13 +36,11 @@ class PatchedMOSDriver(mos.MOSDriver):
         """Patched MOS Driver constructor."""
         super().__init__(hostname, username, password, timeout, optional_args)
 
-        self.patched_attrs = ['device', ]
+        self.patched_attrs = ["device"]
         self.device = FakeMOSDevice()
 
     def is_alive(self):
-        return {
-            "is_alive": True
-        }
+        return {"is_alive": True}
 
     def open(self):
         pass
@@ -52,17 +52,17 @@ class PatchedMOSDriver(mos.MOSDriver):
 class FakeMOSDevice(BaseTestDouble):
     """MOS device test double."""
 
-    def run_commands(self, command_list, encoding='json', send_enable=False):
+    def run_commands(self, command_list, encoding="json", send_enable=False):
         """Fake run_commands."""
         result = list()
 
         for command in command_list:
-            filename = '{}.{}'.format(self.sanitize_text(command), encoding)
+            filename = "{}.{}".format(self.sanitize_text(command), encoding)
             full_path = self.find_file(filename)
 
-            if encoding == 'json':
+            if encoding == "json":
                 result.append(self.read_json_file(full_path))
             else:
-                result.append({'output': self.read_txt_file(full_path)})
+                result.append({"output": self.read_txt_file(full_path)})
 
         return result
