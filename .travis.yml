@@ -6,7 +6,7 @@ python:
 - 3.6
 - 3.7
 env:
-- NAPALM=2.3.3
+- NAPALM=2.4.0
 matrix:
   include:
   - python: 3.6
