@@ -529,7 +529,10 @@ class MOSDriver(NetworkDriver):
 
         return cli_output
 
-    def get_arp_table(self):
+    def get_arp_table(self, vrf=""):
+
+        if vrf:
+            raise NotImplementedError("Metamako MOS does not support multiple VRFs")
 
         arp_table = []
 
