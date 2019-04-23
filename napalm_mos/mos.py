@@ -47,6 +47,8 @@ from napalm.base.exceptions import (
     SessionLockedException,
 )
 
+from napalm_mos.constants import LLDP_CAPAB_TRANFORM_TABLE
+
 
 class MOSDriver(NetworkDriver):
     """Napalm driver for Metamako MOS."""
@@ -440,6 +442,9 @@ class MOSDriver(NetworkDriver):
         environment_counters["memory"] = {"available_ram": -1, "used_ram": -1}
         return environment_counters
 
+    def _transform_lldp_capab(self, capabilities):
+        return sorted([LLDP_CAPAB_TRANFORM_TABLE[c.lower()] for c in capabilities.split(", ")])
+
     def get_lldp_neighbors_detail(self, interface=""):
 
         lldp_neighbors_out = {}
@@ -492,8 +497,8 @@ class MOSDriver(NetworkDriver):
                     "remote_system_description": info_dict.get(
                         "system description", ""
                     ),
-                    "remote_system_capab": system_capab,
-                    "remote_system_enable_capab": enabled_capab,
+                    "remote_system_capab": self._transform_lldp_capab(system_capab),
+                    "remote_system_enable_capab": self._transform_lldp_capab(enabled_capab),
                 }
 
                 lldp_neighbors_out[interface].append(tlv_dict)
