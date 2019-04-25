@@ -343,6 +343,7 @@ class MOSDriver(NetworkDriver):
 
             interfaces[interface]["speed"] = _parse_mm_speed(values["speed"])
             interfaces[interface]["mac_address"] = ""
+            interfaces[interface]["mtu"] = -1
 
         return interfaces
 
