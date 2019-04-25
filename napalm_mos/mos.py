@@ -443,7 +443,9 @@ class MOSDriver(NetworkDriver):
         return environment_counters
 
     def _transform_lldp_capab(self, capabilities):
-        return sorted([LLDP_CAPAB_TRANFORM_TABLE[c.lower()] for c in capabilities.split(", ")])
+        return sorted(
+            [LLDP_CAPAB_TRANFORM_TABLE[c.lower()] for c in capabilities.split(", ")]
+        )
 
     def get_lldp_neighbors_detail(self, interface=""):
 
@@ -498,7 +500,9 @@ class MOSDriver(NetworkDriver):
                         "system description", ""
                     ),
                     "remote_system_capab": self._transform_lldp_capab(system_capab),
-                    "remote_system_enable_capab": self._transform_lldp_capab(enabled_capab),
+                    "remote_system_enable_capab": self._transform_lldp_capab(
+                        enabled_capab
+                    ),
                 }
 
                 lldp_neighbors_out[interface].append(tlv_dict)
