@@ -444,7 +444,11 @@ class MOSDriver(NetworkDriver):
 
     def _transform_lldp_capab(self, capabilities):
         return sorted(
-            [LLDP_CAPAB_TRANFORM_TABLE[c.lower()] for c in capabilities.split(", ") if c]
+            [
+                LLDP_CAPAB_TRANFORM_TABLE[c.lower()]
+                for c in capabilities.split(", ")
+                if c
+            ]
         )
 
     def get_lldp_neighbors_detail(self, interface=""):
