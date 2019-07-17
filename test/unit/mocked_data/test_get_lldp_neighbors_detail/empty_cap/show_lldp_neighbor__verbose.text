@@ -1,0 +1,13 @@
+* et37
+  src: (mac address) 74:a0:2f:1c:1f:91
+  received: Wed Jul 17 10:09:25 2019 (0:00:15)
+  chassis id: (mac address) 74:a0:2f:1c:1f:91
+  port id: (mac address) 74:a0:2f:1c:1f:91
+  time to live: 120 secs
+  system name: localhost
+  system description: CentOS Linux 7 (Core) Linux 3.10.0-862.11.6.el7.x86_64 #1 SMP Tue Aug 14 21:49:04 UTC 2018 x86_64
+  system capability: {'enabled': '', 'capabilities': 'mac-bridge,wlan-access-point,router'}
+  port description: eth1
+  IEEE 802.3 link aggr (3): {'capability': 'capable', 'status': 'not in aggregation', 'port id': '00 00 00 00'}
+  IEEE 802.3 mac phy cfg status (1): {'auto-neg status': 'enabled', 'auto-neg support': 'supported'}
+  end of lldpdu:
