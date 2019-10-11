@@ -343,6 +343,8 @@ class MOSDriver(NetworkDriver):
 
             interfaces[interface]["speed"] = _parse_mm_speed(values["speed"])
             interfaces[interface]["mac_address"] = ""
+            # L1 device has no concept of MTU
+            interfaces[interface]["mtu"] = -1
 
         return interfaces
 
@@ -727,7 +729,7 @@ class MOSDriver(NetworkDriver):
             optics_detail[port] = port_detail
         return optics_detail
 
-    def get_config(self, retrieve="all"):
+    def get_config(self, retrieve="all", full=False):
         """get_config implementation for MOS."""
 
         get_startup = False
