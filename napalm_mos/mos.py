@@ -128,7 +128,9 @@ class MOSDriver(NetworkDriver):
                 "show snmp contact": "show snmp v2-mib contact",
                 "show environment all": "show system environment all",
             }
-            commands = [i if i not in translations.keys() else translations[i] for i in commands]
+            commands = [
+                i if i not in translations.keys() else translations[i] for i in commands
+            ]
         return self.device.run_commands(commands, **kwargs)
 
     def open(self):
@@ -431,7 +433,9 @@ class MOSDriver(NetworkDriver):
 
         # Fans
         for slot, data in output["systemCooling"]["fans"].items():
-            environment_counters["fans"][slot] = {"status": data["status"] == "OK"}
+            environment_counters["fans"][slot] = {
+                "status": False if data["status"] == "NOT WORKING" else True
+            }
 
         # Temperature
         temps = {}
@@ -559,9 +563,7 @@ class MOSDriver(NetworkDriver):
                 # but at least can have better control to point to wrong command in case of failure
             except pyeapi.eapilib.CommandError:
                 # for sure this command failed
-                cli_output[
-                    command
-                ] = 'Invalid command: "{cmd}"'.format(cmd=command)
+                cli_output[command] = 'Invalid command: "{cmd}"'.format(cmd=command)
                 raise CommandErrorException(str(cli_output))
             except Exception as e:
                 # something bad happened
@@ -777,11 +779,7 @@ class MOSDriver(NetworkDriver):
 
         output = self.device.run_commands(commands, encoding="text")
         return {
-            "startup": output[0]["output"]
-            if get_startup
-            else "",
-            "running": output[1]["output"]
-            if get_running
-            else "",
+            "startup": output[0]["output"] if get_startup else "",
+            "running": output[1]["output"] if get_running else "",
             "candidate": "",
         }
