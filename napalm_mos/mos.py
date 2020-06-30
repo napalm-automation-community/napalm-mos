@@ -266,9 +266,9 @@ class MOSDriver(NetworkDriver):
         # There's no good way to do this yet
         if self._replace_config:
             cur = self.get_config("running")["running"].splitlines()[4:]
-            return "\n".join(difflib.unified_diff(cur, self._candidate[4:]))
+            return "\n".join(difflib.unified_diff(cur, self._candidate[3:]))
         else:
-            return "\n".join(self._candidate[3:])
+            return "\n".join(self._candidate[2:])
 
     def discard_config(self):
         if self.config_session is not None:
