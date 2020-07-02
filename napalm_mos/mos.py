@@ -88,6 +88,7 @@ class MOSDriver(NetworkDriver):
         self._replace_config = False
         self._ssh = None
         self._MOSH_10017 = False
+        self._NOTICE_0042 = False
 
         self._process_optional_args(optional_args or {})
 
@@ -137,6 +138,8 @@ class MOSDriver(NetworkDriver):
             # Waiting for fixed release
             if LooseVersion(sw_version) < LooseVersion("0.19.2"):
                 self._MOSH_10017 = True
+            if LooseVersion(sw_version) >= LooseVersion("0.22.0"):
+                self._NOTICE_0042 = True
         except ConnectionError as ce:
             raise ConnectionException(ce.message)
 
@@ -408,7 +411,11 @@ class MOSDriver(NetworkDriver):
 
     def get_environment(self):
 
-        commands = ["show environment all"]
+        if self._NOTICE_0042:
+            commands = ["show system environment all"]
+        else:
+            commands = ["show environment all"]
+
         output = self.device.run_commands(commands, encoding="json")[0]
         environment_counters = {"fans": {}, "temperature": {}, "power": {}, "cpu": {}}
 
