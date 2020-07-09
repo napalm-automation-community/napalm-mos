@@ -1,0 +1,30 @@
+! device: test (C16-B2, MOS-0.14.0alpha1)
+!
+
+hostname test
+username admin secret sha512 $6$01234567890ABCDEF01234567890ABCDEF01234567890ABCDEF01234567890ABCDEF01234567890ABCDEF01234567890ABC
+tacacs-server host 192.0.1.10 key 7 01234567890ABCDEF0123456789ABCDEF0123456789A
+tacacs-server host 192.0.1.11 key 7 01234567890ABCDEF0123456789ABCDEF0123456789A
+tacacs-server host 192.0.1.12 key 7 01234567890ABCDEF0123456789ABCDEF0123456789A
+
+ntp server 192.0.1.100
+ntp server 192.0.1.101
+
+logging host 192.0.1.101
+alias wrm copy running-config startup-config
+
+interface et1
+    source et2
+
+interface et2
+    source et1
+
+interface ma1
+    ip address 192.0.2.201 255.255.255.0
+    ip default-gateway 192.0.2.254
+
+management snmp
+    snmp-server community publ1c ro
+
+end
+
