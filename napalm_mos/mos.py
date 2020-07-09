@@ -219,11 +219,11 @@ class MOSDriver(NetworkDriver):
 
     def _get_sessions(self):
         return [
-            l.split()[-1]
-            for l in self.device.run_commands(["dir flash:"], encoding="text")[0][
+            line.split()[-1]
+            for line in self.device.run_commands(["dir flash:"], encoding="text")[0][
                 "output"
             ].splitlines()
-            if "napalm_" in l.split()[-1]
+            if "napalm_" in line.split()[-1]
         ]
 
     def _load_config(self, filename=None, config=None, replace=False):
@@ -261,7 +261,7 @@ class MOSDriver(NetworkDriver):
             raise CommandErrorException(
                 "Cannot set source mac in MOS versions prior to 0.19.2"
             )
-        if any("banner motd" in l for l in self._candidate):
+        if any("banner motd" in line for line in self._candidate):
             raise CommandErrorException("Cannot set banner via JSONRPC API")
 
     def _wait_for_reload(self, timeout=None):
@@ -286,9 +286,9 @@ class MOSDriver(NetworkDriver):
         # There's no good way to do this yet
         if self._replace_config:
             cur = self.get_config("running")["running"].splitlines()[4:]
-            return "\n".join(difflib.unified_diff(cur, self._candidate[4:]))
+            return "\n".join(difflib.unified_diff(cur, self._candidate[3:]))
         else:
-            return "\n".join(self._candidate[3:])
+            return "\n".join(self._candidate[2:])
 
     def discard_config(self):
         if self.config_session is not None:
