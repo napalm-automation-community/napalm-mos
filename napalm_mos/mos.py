@@ -255,7 +255,7 @@ class MOSDriver(NetworkDriver):
 
         self._candidate.append("end")
         if any(
-            "source mac" in l for l in self._candidate
+            "source mac" in line for line in self._candidate
         ) and self._version < LooseVersion("0.19.2"):
             # Waiting for fixed release
             raise CommandErrorException(
