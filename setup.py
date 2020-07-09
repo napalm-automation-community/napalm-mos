@@ -22,4 +22,5 @@ setup(
     url="https://github.com/napalm-automation-community/napalm-mos",
     include_package_data=True,
     install_requires=reqs,
+    python_requires=">=3.6",
 )
