@@ -49,6 +49,7 @@ from napalm.base.exceptions import (
 )
 
 from napalm_mos.constants import LLDP_CAPAB_TRANFORM_TABLE
+import napalm.base.constants as c
 
 
 class MOSDriver(NetworkDriver):
@@ -760,7 +761,7 @@ class MOSDriver(NetworkDriver):
             optics_detail[port] = port_detail
         return optics_detail
 
-    def get_config(self, retrieve="all", full=False):
+    def get_config(self, retrieve="all", full=False, sanitized=False):
         """get_config implementation for MOS."""
 
         get_startup = False
@@ -778,6 +779,17 @@ class MOSDriver(NetworkDriver):
             Exception("Wrong retrieve filter: {}".format(retrieve))
 
         output = self.device.run_commands(commands, encoding="text")
+
+        if sanitized:
+            output = [
+                {
+                    "output": napalm.base.helpers.sanitize_config(
+                        config["output"], c.CISCO_SANITIZE_FILTERS
+                    )
+                }
+                for config in output
+            ]
+
         return {
             "startup": output[0]["output"] if get_startup else "",
             "running": output[1]["output"] if get_running else "",
