@@ -31,6 +31,7 @@ import difflib
 import pyeapi
 import re
 import time
+import inspect
 
 from datetime import timedelta, datetime
 from distutils.version import LooseVersion
@@ -40,7 +41,7 @@ from pyeapi.eapilib import ConnectionError
 
 import napalm.base.helpers
 from napalm.base import NetworkDriver
-from napalm.base.utils import string_parsers, py23_compat
+from napalm.base.utils import string_parsers
 from napalm.base.exceptions import (
     ConnectionException,
     CommandErrorException,
@@ -87,7 +88,7 @@ class MOSDriver(NetworkDriver):
         self._current_config = None
         self._replace_config = False
         self._ssh = None
-        self._MOSH_10017 = False
+        self._version = LooseVersion("0")
 
         self._process_optional_args(optional_args or {})
 
@@ -102,7 +103,7 @@ class MOSDriver(NetworkDriver):
             self.transport_class = pyeapi.client.TRANSPORTS[transport]
         except KeyError:
             raise ConnectionException("Unknown transport: {}".format(self.transport))
-        init_args = py23_compat.argspec(self.transport_class.__init__)[0]
+        init_args = inspect.getfullargspec(self.transport_class.__init__)[0]
         init_args.pop(0)  # Remove "self"
         init_args.append("enforce_verification")  # Not an arg for unknown reason
 
@@ -113,6 +114,24 @@ class MOSDriver(NetworkDriver):
             for k, v in optional_args.items()
             if k in init_args and k not in filter_args
         }
+
+    def _run_translated_commands(self, commands, **kwargs):
+        """
+        In 0.22.0+ some commands had their syntax change.  This function translates those command
+        syntaxs to their post 0.22.0 version
+        """
+        if self._version >= LooseVersion("0.22.0"):
+            # Map of translate command syntax to 0.23.0+ syntax
+            translations = {
+                "show snmp chassis-id": "show snmp v2-mib chassis-id",
+                "show snmp location": "show snmp v2-mib location",
+                "show snmp contact": "show snmp v2-mib contact",
+                "show environment all": "show system environment all",
+            }
+            commands = [
+                i if i not in translations.keys() else translations[i] for i in commands
+            ]
+        return self.device.run_commands(commands, **kwargs)
 
     def open(self):
         """Implementation of NAPALM method open."""
@@ -134,9 +153,7 @@ class MOSDriver(NetworkDriver):
                 raise NotImplementedError(
                     "MOS Software Version 0.17.9 or better required"
                 )
-            # Waiting for fixed release
-            if LooseVersion(sw_version) < LooseVersion("0.19.2"):
-                self._MOSH_10017 = True
+            self._version = LooseVersion(sw_version)
         except ConnectionError as ce:
             raise ConnectionException(ce.message)
 
@@ -237,7 +254,10 @@ class MOSDriver(NetworkDriver):
             self._candidate.append(line)
 
         self._candidate.append("end")
-        if any("source mac" in line for line in self._candidate) and self._MOSH_10017:
+        if any(
+            "source mac" in l for l in self._candidate
+        ) and self._version < LooseVersion("0.19.2"):
+            # Waiting for fixed release
             raise CommandErrorException(
                 "Cannot set source mac in MOS versions prior to 0.19.2"
             )
@@ -407,22 +427,35 @@ class MOSDriver(NetworkDriver):
         return interface_counters
 
     def get_environment(self):
-
         commands = ["show environment all"]
-        output = self.device.run_commands(commands, encoding="json")[0]
+        output = self._run_translated_commands(commands, encoding="json")[0]
         environment_counters = {"fans": {}, "temperature": {}, "power": {}, "cpu": {}}
 
         # Fans
         for slot, data in output["systemCooling"]["fans"].items():
-            environment_counters["fans"][slot] = {"status": data["status"] == "OK"}
+            environment_counters["fans"][slot] = {
+                "status": False if data["status"] == "NOT WORKING" else True
+            }
 
         # Temperature
         temps = {}
         for n, v in output["systemTemperature"]["sensors"].items():
+            # Make sure all the temperatures are numbers, allow floats as well
+            temp = v["temp(C)"] if v["temp(C)"].replace(".", "").isdigit() else -1
+            alert_thres = (
+                v["alertThreshold"]
+                if v["alertThreshold"].replace(".", "").isdigit()
+                else -1
+            )
+            crit_thres = (
+                v["criticalThreshold"]
+                if v["criticalThreshold"].replace(".", "").isdigit()
+                else -1
+            )
             temps[v["description"]] = {
-                "temperature": float(v["temp(C)"]),
-                "is_alert": float(v["temp(C)"]) > float(v["alertThreshold"]),
-                "is_critical": float(v["temp(C)"]) > float(v["criticalThreshold"]),
+                "temperature": float(temp),
+                "is_alert": float(temp) > float(alert_thres),
+                "is_critical": float(temp) > float(crit_thres),
             }
         environment_counters["temperature"].update(temps)
 
@@ -493,7 +526,7 @@ class MOSDriver(NetworkDriver):
                 enabled_capab = capabilities.get("enabled", "").replace(",", ", ")
 
                 tlv_dict = {
-                    "parent_interface": py23_compat.text_type(interface),
+                    "parent_interface": interface,
                     "remote_port": re.sub(
                         r"\s*\([^)]*\)\s*", "", info_dict.get("port id", "")
                     ),
@@ -523,23 +556,21 @@ class MOSDriver(NetworkDriver):
 
         for command in commands:
             try:
-                cli_output[py23_compat.text_type(command)] = self.device.run_commands(
+                cli_output[command] = self.device.run_commands(
                     [command], encoding="text"
                 )[0].get("output")
                 # not quite fair to not exploit rum_commands
                 # but at least can have better control to point to wrong command in case of failure
             except pyeapi.eapilib.CommandError:
                 # for sure this command failed
-                cli_output[
-                    py23_compat.text_type(command)
-                ] = 'Invalid command: "{cmd}"'.format(cmd=command)
+                cli_output[command] = 'Invalid command: "{cmd}"'.format(cmd=command)
                 raise CommandErrorException(str(cli_output))
             except Exception as e:
                 # something bad happened
                 msg = 'Unable to execute command "{cmd}": {err}'.format(
                     cmd=command, err=e
                 )
-                cli_output[py23_compat.text_type(command)] = msg
+                cli_output[command] = msg
                 raise CommandErrorException(str(cli_output))
 
         return cli_output
@@ -562,9 +593,9 @@ class MOSDriver(NetworkDriver):
             match = self._RE_ARP.match(line)
             if match:
                 neighbor = match.groupdict()
-                interface = py23_compat.text_type(neighbor.get("interface"))
+                interface = neighbor.get("interface")
                 mac_raw = neighbor.get("hwAddress")
-                ip = py23_compat.text_type(neighbor.get("address"))
+                ip = neighbor.get("address")
                 age = 0.0
                 arp_table.append(
                     {
@@ -582,7 +613,7 @@ class MOSDriver(NetworkDriver):
 
         servers = self._RE_NTP_SERVERS.findall(config)
 
-        return {py23_compat.text_type(server): {} for server in servers}
+        return {server: {} for server in servers}
 
     def get_ntp_stats(self):
         ntp_stats = []
@@ -616,12 +647,12 @@ class MOSDriver(NetworkDriver):
             try:
                 ntp_stats.append(
                     {
-                        "remote": py23_compat.text_type(line_groups[1]),
+                        "remote": line_groups[1],
                         "synchronized": (line_groups[0] == "*"),
-                        "referenceid": py23_compat.text_type(line_groups[2]),
+                        "referenceid": line_groups[2],
                         "stratum": int(line_groups[3]),
-                        "type": py23_compat.text_type(line_groups[4]),
-                        "when": py23_compat.text_type(line_groups[5]),
+                        "type": line_groups[4],
+                        "when": line_groups[5],
                         "hostpoll": int(line_groups[6]),
                         "reachability": int(line_groups[7]),
                         "delay": float(line_groups[8]),
@@ -646,7 +677,7 @@ class MOSDriver(NetworkDriver):
             "show snmp contact",
             "show snmp community",
         ]
-        snmp_config = self.device.run_commands(commands, encoding="text")
+        snmp_config = self._run_translated_commands(commands, encoding="text")
         snmp_dict["chassis_id"] = (
             snmp_config[0]["output"].replace("Chassis: ", "").strip()
         )
@@ -662,8 +693,8 @@ class MOSDriver(NetworkDriver):
             if match:
                 matches = match.groupdict("")
                 snmp_dict["community"][match.group("community")] = {
-                    "acl": py23_compat.text_type(matches["v4_acl"]),
-                    "mode": py23_compat.text_type(matches["mode"]),
+                    "acl": matches["v4_acl"],
+                    "mode": matches["mode"],
                 }
 
         return snmp_dict
@@ -748,11 +779,7 @@ class MOSDriver(NetworkDriver):
 
         output = self.device.run_commands(commands, encoding="text")
         return {
-            "startup": py23_compat.text_type(output[0]["output"])
-            if get_startup
-            else "",
-            "running": py23_compat.text_type(output[1]["output"])
-            if get_running
-            else "",
+            "startup": output[0]["output"] if get_startup else "",
+            "running": output[1]["output"] if get_running else "",
             "candidate": "",
         }

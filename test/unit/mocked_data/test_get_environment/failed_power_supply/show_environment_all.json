@@ -47,12 +47,12 @@
                 "speed": "72%"
             },
             "3": {
-                "status": "BACK-TO-FRONT (REV)",
-                "speed": "72%"
+                "status": "NOT WORKING",
+                "speed": "0%"
             },
             "4": {
-                "status": "BACK-TO-FRONT (REV)",
-                "speed": "70%"
+                "status": "NOT WORKING",
+                "speed": "0%"
             }
         },
         "powerSupplies": {
@@ -81,15 +81,15 @@
                 "capacity": "460W"
             }
         },
-        "status": "OK",
+        "status": "1 of 2 OK",
         "powerOutput": {
             "1": {
-                "inputVoltage": "111.50V AC",
-                "inputCurrent": "1.48A",
-                "outputCurrent": "13.50A",
-                "outputPower": "164.0W",
-                "outputVoltage": "12.19V",
-                "fanRpm": "7328"
+                "inputVoltage": "0.00V AC",
+                "inputCurrent": "0.00A",
+                "outputCurrent": "0.00A",
+                "outputPower": "0.0W",
+                "outputVoltage": "0.00V",
+                "fanRpm": "7104"
             },
             "2": {
                 "inputVoltage": "111.50V AC",

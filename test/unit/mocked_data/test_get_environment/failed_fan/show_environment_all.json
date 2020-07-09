@@ -47,12 +47,12 @@
                 "speed": "72%"
             },
             "3": {
-                "status": "BACK-TO-FRONT (REV)",
-                "speed": "72%"
+                "status": "NOT WORKING",
+                "speed": "0%"
             },
             "4": {
-                "status": "BACK-TO-FRONT (REV)",
-                "speed": "70%"
+                "status": "NOT WORKING",
+                "speed": "0%"
             }
         },
         "powerSupplies": {
