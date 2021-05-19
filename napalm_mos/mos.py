@@ -91,6 +91,8 @@ class MOSDriver(NetworkDriver):
         self._ssh = None
         self._version = LooseVersion("0")
 
+        self.platform = "mos"
+
         self._process_optional_args(optional_args or {})
 
     def _process_optional_args(self, optional_args):
@@ -296,7 +298,12 @@ class MOSDriver(NetworkDriver):
             self._candidate = None
             self._unlock()
 
-    def commit_config(self, message=""):
+    def commit_config(self, message="", revert_in=None):
+        if revert_in is not None:
+            raise NotImplementedError(
+                "Commit confirm has not been implemented on this platform."
+            )
+
         if message:
             raise NotImplementedError(
                 "Commit message not implemented for this platform"
