@@ -47,7 +47,7 @@ jobs:
           python -m pip install -r requirements-dev.txt
       - name: Build wheel
         run: |
-          python setup.py bdist_wheel --universal --build-number $GITHUB_RUN_NUMBER
+          python setup.py bdist_wheel --build-number $GITHUB_RUN_NUMBER
       - name: Upload to test
         if: github.event_name == 'push'
         uses: pypa/gh-action-pypi-publish@master
