@@ -1,0 +1,191 @@
+{
+    "comments": [
+        "! command: show running-config",
+        "! time: Tue Feb 15 16:38:20 2022",
+        "! device: some device (M48L-A3, MOS-0.30.0)"
+    ],
+    "hostnamesome-device": [],
+    "bannerMotd": [],
+    "clockTimezoneCet": [],
+    "interfaceEt1": [
+        "description blah",
+        "phy 1ge",
+        "source et2"
+    ],
+    "interfaceAp1": [
+        "description Core 2 Port 0",
+        "source et1"
+    ],
+    "interfaceAp2": [
+        "description Core 2 Port 1",
+        "source et2"
+    ],
+    "interfaceAp3": [
+        "description Core 2 Port 2",
+        "source et3"
+    ],
+    "interfaceAp4": [
+        "description Core 2 Port 3",
+        "source et4"
+    ],
+    "interfaceAp5": [
+        "description Core 2 Port 4"
+    ],
+    "interfaceAp6": [
+        "description Core 2 Port 5"
+    ],
+    "interfaceAp7": [
+        "description Core 2 Port 6"
+    ],
+    "interfaceAp8": [
+        "description Core 2 Port 7"
+    ],
+    "interfaceAp9": [
+        "description Core 2 Port 8"
+    ],
+    "interfaceAp10": [
+        "description Core 2 Port 9"
+    ],
+    "interfaceAp11": [
+        "description Core 2 Port 10"
+    ],
+    "interfaceAp12": [
+        "description Core 2 Port 11"
+    ],
+    "interfaceAp13": [
+        "description Core 3 Port 0"
+    ],
+    "interfaceAp14": [
+        "description Core 3 Port 1"
+    ],
+    "interfaceAp15": [
+        "description Core 3 Port 2"
+    ],
+    "interfaceAp16": [
+        "description Core 3 Port 3"
+    ],
+    "interfaceAp17": [
+        "description Core 3 Port 4"
+    ],
+    "interfaceAp18": [
+        "description Core 3 Port 5"
+    ],
+    "interfaceAp19": [
+        "description Core 3 Port 6"
+    ],
+    "interfaceAp20": [
+        "description Core 3 Port 7"
+    ],
+    "interfaceAp21": [
+        "description Core 3 Port 8"
+    ],
+    "interfaceAp22": [
+        "description Core 3 Port 9"
+    ],
+    "interfaceAp23": [
+        "description Core 3 Port 10"
+    ],
+    "interfaceAp24": [
+        "description Core 3 Port 11"
+    ],
+    "interfaceAp33": [
+        "description Core 1 Port 0"
+    ],
+    "interfaceAp34": [
+        "description Core 1 Port 1"
+    ],
+    "interfaceAp35": [
+        "description Core 1 Port 2",
+        "source et27"
+    ],
+    "interfaceAp36": [
+        "description Core 1 Port 3"
+    ],
+    "interfaceAp37": [
+        "description Core 1 Port 4"
+    ],
+    "interfaceAp38": [
+        "description Core 1 Port 5"
+    ],
+    "interfaceAp39": [
+        "description Core 1 Port 6"
+    ],
+    "interfaceAp40": [
+        "description Core 1 Port 7"
+    ],
+    "interfaceAp41": [
+        "description Core 1 Port 8"
+    ],
+    "interfaceAp42": [
+        "description Core 1 Port 9"
+    ],
+    "interfaceAp43": [
+        "description Core 1 Port 10"
+    ],
+    "interfaceAp44": [
+        "description Core 1 Port 11"
+    ],
+    "interfaceAp45": [
+        "description Core 0 Port 0"
+    ],
+    "interfaceAp46": [
+        "description Core 0 Port 1"
+    ],
+    "interfaceAp47": [
+        "description Core 0 Port 2"
+    ],
+    "interfaceAp48": [
+        "description Core 0 Port 3"
+    ],
+    "interfaceAp49": [
+        "description Core 0 Port 4"
+    ],
+    "interfaceAp50": [
+        "description Core 0 Port 5"
+    ],
+    "interfaceAp51": [
+        "description Core 0 Port 6"
+    ],
+    "interfaceAp52": [
+        "description Core 0 Port 7"
+    ],
+    "interfaceAp53": [
+        "description Core 0 Port 8"
+    ],
+    "interfaceAp54": [
+        "description Core 0 Port 9"
+    ],
+    "interfaceAp55": [
+        "description Core 0 Port 10"
+    ],
+    "interfaceAp56": [
+        "description Core 0 Port 11"
+    ],
+    "interfaceAp57": [
+        "description Core 0 Out"
+    ],
+    "interfaceAp58": [
+        "description Core 1 Out"
+    ],
+    "interfaceAp59": [
+        "description Core 2 Out"
+    ],
+    "interfaceAp60": [
+        "description Core 3 Out"
+    ],
+    "interfaceMa1": [
+        "description some_other_device Et42",
+        "ip address 10.101.63.233 255.255.255.0",
+        "ip default-gateway 10.101.63.254"
+    ],
+    "interfaceMa5": [
+        "no shutdown",
+        "ip address 10.101.63.204 255.255.255.0",
+        "source et28"
+    ],
+    "ipRoute10.101.63.243DevMa5Metric1": [],
+    "managementApi": [
+        "no shutdown"
+    ],
+    "end": []
+}
