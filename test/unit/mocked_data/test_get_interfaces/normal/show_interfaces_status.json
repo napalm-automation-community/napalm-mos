@@ -1,1 +1,174 @@
-{"interfaces": {"et2": {"name": "", "tx": "up <- et1", "loopback": "", "type": "NOT PRESENT", "rx": "up (link)", "source": "et1", "mode": "", "speed": "10G"}, "et3": {"name": "", "tx": "", "loopback": "", "type": "NOT PRESENT", "rx": "", "source": "", "mode": "", "speed": ""}, "et1": {"name": "", "tx": "up <- mac", "loopback": "", "type": "1X Copper Passive", "rx": "up (link)", "source": "mac", "mode": "", "speed": "10G"}, "et6": {"name": "", "tx": "", "loopback": "", "type": "NOT PRESENT", "rx": "", "source": "", "mode": "", "speed": ""}, "et7": {"name": "", "tx": "", "loopback": "", "type": "NOT PRESENT", "rx": "", "source": "", "mode": "", "speed": ""}, "et4": {"name": "", "tx": "", "loopback": "", "type": "NOT PRESENT", "rx": "", "source": "", "mode": "", "speed": ""}, "et5": {"name": "", "tx": "", "loopback": "", "type": "NOT PRESENT", "rx": "", "source": "", "mode": "", "speed": ""}, "et8": {"name": "", "tx": "", "loopback": "", "type": "NOT PRESENT", "rx": "", "source": "", "mode": "", "speed": ""}, "et9": {"name": "", "tx": "", "loopback": "", "type": "NOT PRESENT", "rx": "", "source": "", "mode": "", "speed": ""}, "ma1": {"name": "", "tx": "up (link)", "loopback": "", "type": "100/1000", "rx": "up (link)", "source": "", "mode": "", "speed": "1G"}, "et14": {"name": "", "tx": "", "loopback": "", "type": "NOT PRESENT", "rx": "", "source": "", "mode": "", "speed": ""}, "et15": {"name": "", "tx": "", "loopback": "", "type": "NOT PRESENT", "rx": "", "source": "", "mode": "", "speed": ""}, "et16": {"name": "", "tx": "", "loopback": "", "type": "NOT PRESENT", "rx": "", "source": "", "mode": "", "speed": ""}, "et10": {"name": "", "tx": "", "loopback": "", "type": "NOT PRESENT", "rx": "", "source": "", "mode": "", "speed": ""}, "et11": {"name": "", "tx": "", "loopback": "", "type": "NOT PRESENT", "rx": "", "source": "", "mode": "", "speed": ""}, "et12": {"name": "", "tx": "", "loopback": "", "type": "NOT PRESENT", "rx": "", "source": "", "mode": "", "speed": ""}, "et13": {"name": "", "tx": "", "loopback": "", "type": "NOT PRESENT", "rx": "", "source": "", "mode": "", "speed": ""}}}
+{
+  "interfaces": {
+    "et2": {
+      "name": "",
+      "tx": "up <- et1",
+      "loopback": "",
+      "type": "NOT PRESENT",
+      "rx": "up (link)",
+      "source": "et1",
+      "mode": "",
+      "speed": "10G"
+    },
+    "et3": {
+      "name": "",
+      "tx": "",
+      "loopback": "",
+      "type": "NOT PRESENT",
+      "rx": "",
+      "source": "",
+      "mode": "",
+      "speed": ""
+    },
+    "et1": {
+      "name": "",
+      "tx": "up <- mac",
+      "loopback": "",
+      "type": "1X Copper Passive",
+      "rx": "up (link)",
+      "source": "mac",
+      "mode": "",
+      "speed": "10G"
+    },
+    "et6": {
+      "name": "",
+      "tx": "",
+      "loopback": "",
+      "type": "NOT PRESENT",
+      "rx": "",
+      "source": "",
+      "mode": "",
+      "speed": ""
+    },
+    "et7": {
+      "name": "",
+      "tx": "",
+      "loopback": "",
+      "type": "NOT PRESENT",
+      "rx": "",
+      "source": "",
+      "mode": "",
+      "speed": ""
+    },
+    "et4": {
+      "name": "",
+      "tx": "",
+      "loopback": "",
+      "type": "NOT PRESENT",
+      "rx": "",
+      "source": "",
+      "mode": "",
+      "speed": ""
+    },
+    "et5": {
+      "name": "",
+      "tx": "",
+      "loopback": "",
+      "type": "NOT PRESENT",
+      "rx": "",
+      "source": "",
+      "mode": "",
+      "speed": ""
+    },
+    "et8": {
+      "name": "",
+      "tx": "",
+      "loopback": "",
+      "type": "NOT PRESENT",
+      "rx": "",
+      "source": "",
+      "mode": "",
+      "speed": ""
+    },
+    "et9": {
+      "name": "",
+      "tx": "",
+      "loopback": "",
+      "type": "NOT PRESENT",
+      "rx": "",
+      "source": "",
+      "mode": "",
+      "speed": ""
+    },
+    "ma1": {
+      "name": "",
+      "tx": "up (link)",
+      "loopback": "",
+      "type": "100/1000",
+      "rx": "up (link)",
+      "source": "",
+      "mode": "",
+      "speed": "1G"
+    },
+    "et14": {
+      "name": "",
+      "tx": "",
+      "loopback": "",
+      "type": "NOT PRESENT",
+      "rx": "",
+      "source": "",
+      "mode": "",
+      "speed": ""
+    },
+    "et15": {
+      "name": "",
+      "tx": "",
+      "loopback": "",
+      "type": "NOT PRESENT",
+      "rx": "",
+      "source": "",
+      "mode": "",
+      "speed": ""
+    },
+    "et16": {
+      "name": "",
+      "tx": "",
+      "loopback": "",
+      "type": "NOT PRESENT",
+      "rx": "",
+      "source": "",
+      "mode": "",
+      "speed": ""
+    },
+    "et10": {
+      "name": "",
+      "tx": "",
+      "loopback": "",
+      "type": "NOT PRESENT",
+      "rx": "",
+      "source": "",
+      "mode": "",
+      "speed": ""
+    },
+    "et11": {
+      "name": "",
+      "tx": "",
+      "loopback": "",
+      "type": "NOT PRESENT",
+      "rx": "",
+      "source": "",
+      "mode": "",
+      "speed": ""
+    },
+    "et12": {
+      "name": "",
+      "tx": "",
+      "loopback": "",
+      "type": "NOT PRESENT",
+      "rx": "",
+      "source": "",
+      "mode": "",
+      "speed": ""
+    },
+    "et13": {
+      "name": "",
+      "tx": "",
+      "loopback": "",
+      "type": "NOT PRESENT",
+      "rx": "",
+      "source": "",
+      "mode": "",
+      "speed": ""
+    }
+  }
+}

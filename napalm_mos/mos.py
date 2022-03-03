@@ -35,6 +35,7 @@ import inspect
 
 from datetime import timedelta, datetime
 from distutils.version import LooseVersion
+from ipaddress import IPv4Network
 
 from pyeapi.client import Node as EapiNode
 from pyeapi.eapilib import ConnectionError
@@ -77,6 +78,8 @@ class MOSDriver(NetworkDriver):
         r"(\nCommunity\ssource:\s+(?P<v4_acl>\S+))?",
         re.VERBOSE,
     )
+
+    _RE_IP = re.compile(r"ip address (?P<ip>[^\s]+) (?P<mask>.+)")
 
     def __init__(self, hostname, username, password, timeout=60, optional_args=None):
         """Constructor."""
@@ -144,7 +147,7 @@ class MOSDriver(NetworkDriver):
                 username=self.username,
                 password=self.password,
                 timeout=self.timeout,
-                **self.eapi_kwargs
+                **self.eapi_kwargs,
             )
             if self.device is None:
                 self.device = EapiNode(connection, enablepwd=self.enablepwd)
@@ -373,6 +376,30 @@ class MOSDriver(NetworkDriver):
             interfaces[interface]["mac_address"] = ""
             # L1 device has no concept of MTU
             interfaces[interface]["mtu"] = -1
+
+        return interfaces
+
+    def get_interfaces_ip(self):
+        run = self.device.run_commands(["show running-config"], encoding="json")[0]
+        iface_keys = [
+            k
+            for k in run.keys()
+            if k.startswith("interface") and not k.startswith("interfaceAp")
+        ]
+        interfaces = {}
+        for k in iface_keys:
+            for config_line in run[k]:
+                m = self._RE_IP.match(config_line)
+                if not m:
+                    continue
+                ip = m.group("ip")
+                mask = m.group("mask")
+                _net = IPv4Network(f"{ip}/{mask}", strict=False)
+                prefix_length = _net.prefixlen
+                # Ma1 is reported as interfaceMa1
+                # Et1 as interfaceEt1, etc
+                iface = k.replace("interface", "").lower()
+                interfaces[iface] = {"ipv4": {ip: {"prefix_length": prefix_length}}}
 
         return interfaces
 
