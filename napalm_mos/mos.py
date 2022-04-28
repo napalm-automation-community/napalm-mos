@@ -338,13 +338,13 @@ class MOSDriver(NetworkDriver):
         def _parse_mm_speed(speed):
             """Parse the Metamako speed string from 'sh int status' into an Mbit/s int"""
 
-            factormap = {"": 1e-6, "k": 1e-3, "M": 1, "G": 1e3, "T": 1e6}
+            factormap = {"": 1e-6, "k": 1e-3, "M": 1.0, "G": 1e3, "T": 1e6}
             match = re.match(r"^(?P<speed>\d+)(?P<unit>\D)?$", speed)
             if match:
                 match_dict = match.groupdict("")
-                return int(int(match_dict["speed"]) * factormap[match_dict["unit"]])
+                return float(match_dict["speed"]) * factormap[match_dict["unit"]]
 
-            return 0
+            return 0.0
 
         commands = ["show interfaces status", "show interfaces description"]
         output = self.device.run_commands(commands, encoding="json")
