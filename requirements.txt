@@ -1,2 +1,2 @@
-napalm>=3.4.0
+napalm>=4.0.0
 pyeapi>=0.8.1
