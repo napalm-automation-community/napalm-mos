@@ -201,7 +201,7 @@ class MOSDriver(NetworkDriver):
             "model": re.sub(r"^[Mm]etamako ", "", version["device"]),
             "serial_number": version["serialNumber"],
             "os_version": version["softwareImageVersion"],
-            "uptime": int(uptime),
+            "uptime": float(uptime),
             "interface_list": interfaces,
         }
 
