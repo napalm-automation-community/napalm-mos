@@ -3,5 +3,4 @@ pytest
 pytest-cov
 pytest-json
 pytest-pythonpath
-pylava
 flake8-import-order
