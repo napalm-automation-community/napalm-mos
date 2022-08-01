@@ -583,7 +583,10 @@ class MOSDriver(NetworkDriver):
 
         return lldp_neighbors_out
 
-    def cli(self, commands):
+    def cli(self, commands, encoding="text"):
+        if encoding not in ("text", "json"):
+            raise NotImplementedError("%s is not a supported encoding" % encoding)
+
         cli_output = {}
 
         if not isinstance(commands, list):
@@ -592,7 +595,7 @@ class MOSDriver(NetworkDriver):
         for command in commands:
             try:
                 cli_output[command] = self.device.run_commands(
-                    [command], encoding="text"
+                    [command], encoding=encoding
                 )[0].get("output")
                 # not quite fair to not exploit rum_commands
                 # but at least can have better control to point to wrong command in case of failure
