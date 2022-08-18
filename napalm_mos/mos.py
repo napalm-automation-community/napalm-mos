@@ -191,6 +191,7 @@ class MOSDriver(NetworkDriver):
         uptime = timedelta(
             days=int(u_match["day"]),
             hours=int(u_match["hour"]),
+            minutes=int(u_match["minute"]),
             seconds=int(u_match["second"]),
         ).total_seconds()
 
