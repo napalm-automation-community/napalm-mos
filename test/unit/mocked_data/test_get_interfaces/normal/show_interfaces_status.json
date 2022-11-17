@@ -169,6 +169,76 @@
       "source": "",
       "mode": "",
       "speed": ""
+    },
+    "et17": {
+      "name": "",
+      "rx": "up (link)",
+      "tx": "up <- et1",
+      "loopback": "",
+      "type": "NOT PRESENT",
+      "source": "et1",
+      "mode": "",
+      "speed": "10G"
+    },
+    "et18": {
+      "name": "",
+      "rx": "up (link)",
+      "tx": "up (link)",
+      "loopback": "",
+      "type": "NOT PRESENT",
+      "source": "et1",
+      "mode": "",
+      "speed": "10G"
+    },
+    "et19": {
+      "name": "",
+      "rx": "up (no link)",
+      "tx": "up <- et1",
+      "loopback": "",
+      "type": "NOT PRESENT",
+      "source": "et1",
+      "mode": "",
+      "speed": "10G"
+    },
+    "et20": {
+      "name": "",
+      "rx": "down (no signal)",
+      "tx": "up <- et1",
+      "loopback": "",
+      "type": "NOT PRESENT",
+      "source": "et1",
+      "mode": "",
+      "speed": "10G"
+    },
+    "et21": {
+      "name": "",
+      "rx": "down (shutdown)",
+      "tx": "down (shutdown) <- et1",
+      "loopback": "",
+      "type": "NOT PRESENT",
+      "source": "et1",
+      "mode": "",
+      "speed": "10G"
+    },
+    "et22": {
+      "name": "",
+      "rx": "down (shutdown)",
+      "tx": "down (no source)",
+      "loopback": "",
+      "type": "NOT PRESENT",
+      "source": "et1",
+      "mode": "",
+      "speed": "10G"
+    },
+    "et23": {
+      "name": "",
+      "rx": "(shutdown)",
+      "tx": "(shutdown)",
+      "loopback": "",
+      "type": "NOT PRESENT",
+      "source": "et1",
+      "mode": "",
+      "speed": "10G"
     }
   }
 }

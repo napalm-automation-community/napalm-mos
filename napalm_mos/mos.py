@@ -360,11 +360,11 @@ class MOSDriver(NetworkDriver):
             # A L1 device doesn't really have a line protocol.
             # Let's say an rx signal means line protocol is up for now.
             if values["rx"].startswith("up"):
-                interfaces[interface]["is_up"] = True
+                interfaces[interface]["is_up"] = "no link" not in values["rx"]
                 interfaces[interface]["is_enabled"] = True
             else:
                 interfaces[interface]["is_up"] = False
-                if "shutdown" in values["rx"]:
+                if values["rx"].startswith("down") or "shutdown" in values["rx"]:
                     interfaces[interface]["is_enabled"] = False
                 else:
                     interfaces[interface]["is_enabled"] = True

@@ -151,5 +151,68 @@
     "mac_address": "",
     "speed": 0.0,
     "mtu": -1
+  },
+  "et17": {
+    "description": "",
+    "is_enabled": true,
+    "is_up": true,
+    "last_flapped": 0.0,
+    "mac_address": "",
+    "mtu": -1,
+    "speed": 10000.0
+  },
+  "et18": {
+    "description": "",
+    "is_enabled": true,
+    "is_up": true,
+    "last_flapped": 0.0,
+    "mac_address": "",
+    "mtu": -1,
+    "speed": 10000.0
+  },
+  "et19": {
+    "description": "",
+    "is_enabled": true,
+    "is_up": false,
+    "last_flapped": 0.0,
+    "mac_address": "",
+    "mtu": -1,
+    "speed": 10000.0
+  },
+  "et20": {
+    "description": "",
+    "is_enabled": false,
+    "is_up": false,
+    "last_flapped": 0.0,
+    "mac_address": "",
+    "mtu": -1,
+    "speed": 10000.0
+  },
+  "et21": {
+    "description": "",
+    "is_enabled": false,
+    "is_up": false,
+    "last_flapped": 0.0,
+    "mac_address": "",
+    "mtu": -1,
+    "speed": 10000.0
+  },
+  "et22": {
+    "description": "",
+    "is_enabled": false,
+    "is_up": false,
+    "last_flapped": 0.0,
+    "mac_address": "",
+    "mtu": -1,
+    "speed": 10000.0
+  },
+  "et23": {
+    "description": "",
+    "is_enabled": false,
+    "is_up": false,
+    "last_flapped": 0.0,
+    "mac_address": "",
+    "mtu": -1,
+    "speed": 10000.0
   }
 }
