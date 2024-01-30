@@ -524,7 +524,6 @@ class MOSDriver(NetworkDriver):
         )
 
     def get_lldp_neighbors_detail(self, interface=""):
-
         lldp_neighbors_out = {}
 
         commands = ["show lldp neighbor {} verbose".format(interface)]
@@ -536,10 +535,8 @@ class MOSDriver(NetworkDriver):
         interface_list = zip(*(iter(interfaces_split),) * 2)
 
         for interface, interface_str in interface_list:
-
             lldp_neighbors_out[interface] = []
             for neighbor_str in interface_str.strip().split("\n\n"):
-
                 info_dict = {}
 
                 for info_line in neighbor_str.strip().splitlines():
@@ -616,7 +613,6 @@ class MOSDriver(NetworkDriver):
         return cli_output
 
     def get_arp_table(self, vrf=""):
-
         if vrf:
             raise NotImplementedError("Metamako MOS does not support multiple VRFs")
 
@@ -728,7 +724,6 @@ class MOSDriver(NetworkDriver):
 
         community_outputs = snmp_config[3]["output"].split("\n\n")
         for community_output in community_outputs:
-
             match = self._RE_SNMP_COMM.search(community_output)
             if match:
                 matches = match.groupdict("")

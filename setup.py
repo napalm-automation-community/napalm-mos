@@ -1,4 +1,5 @@
 """setup.py file."""
+
 from setuptools import setup, find_packages
 
 __author__ = "Benny Holmgren <benny@holmgren.id.au>"
