@@ -246,7 +246,7 @@ class MOSDriver(NetworkDriver):
 
         if filename is not None:
             with open(filename, "r") as f:
-                self._candidate = f.readlines()
+                lines = f.readlines()
         else:
             if isinstance(config, list):
                 lines = config
@@ -260,7 +260,8 @@ class MOSDriver(NetworkDriver):
                 continue
             self._candidate.append(line)
 
-        self._candidate.append("end")
+        if self._candidate[-1] != "end":
+            self._candidate.append("end")
         if any(
             "source mac" in line for line in self._candidate
         ) and self._version < LooseVersion("0.19.2"):
