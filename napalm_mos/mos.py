@@ -795,7 +795,7 @@ class MOSDriver(NetworkDriver):
             optics_detail[port] = port_detail
         return optics_detail
 
-    def get_config(self, retrieve="all", full=False, sanitized=False):
+    def get_config(self, retrieve="all", full=False, sanitized=False, format="text"):
         """get_config implementation for MOS."""
 
         get_startup = False
@@ -812,7 +812,7 @@ class MOSDriver(NetworkDriver):
         if not get_startup and not get_running:
             Exception("Wrong retrieve filter: {}".format(retrieve))
 
-        output = self.device.run_commands(commands, encoding="text")
+        output = self.device.run_commands(commands, encoding=format)
 
         if sanitized:
             output = [

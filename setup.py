@@ -9,7 +9,7 @@ with open("requirements.txt", "r") as fs:
 
 setup(
     name="napalm-mos",
-    version="4.0.2",
+    version="5.0.0",
     packages=find_packages(),
     author="Benny Holmgren, Brandon Ewing",
     author_email="benny@holmgren.id.au, brandon.ewing@warningg.com",
@@ -23,5 +23,5 @@ setup(
     url="https://github.com/napalm-automation-community/napalm-mos",
     include_package_data=True,
     install_requires=reqs,
-    python_requires=">=3.7",
+    python_requires=">=3.8",
 )
