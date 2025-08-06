@@ -13,12 +13,9 @@
 # the License.
 
 """napalm-mos package."""
-import pkg_resources
+from importlib.metadata import version
 from napalm_mos.mos import MOSDriver
 
-try:
-    __version__ = pkg_resources.get_distribution("napalm-mos").version
-except pkg_resources.DistributionNotFound:
-    __version__ = "Not installed"
+__version__ = version("napalm-mos")
 
 __all__ = ["MOSDriver"]
