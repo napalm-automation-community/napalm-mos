@@ -34,7 +34,7 @@ import time
 import inspect
 
 from datetime import timedelta, datetime
-from distutils.version import LooseVersion
+from packaging.version import Version
 from ipaddress import IPv4Network
 
 from pyeapi.client import Node as EapiNode
@@ -92,7 +92,7 @@ class MOSDriver(NetworkDriver):
         self._current_config = None
         self._replace_config = False
         self._ssh = None
-        self._version = LooseVersion("0")
+        self._version = Version("0")
 
         self.platform = "mos"
 
@@ -126,7 +126,7 @@ class MOSDriver(NetworkDriver):
         In 0.22.0+ some commands had their syntax change.  This function translates those command
         syntaxs to their post 0.22.0 version
         """
-        if self._version >= LooseVersion("0.22.0"):
+        if self._version >= Version("0.22.0"):
             # Map of translate command syntax to 0.23.0+ syntax
             translations = {
                 "show snmp chassis-id": "show snmp v2-mib chassis-id",
@@ -155,11 +155,11 @@ class MOSDriver(NetworkDriver):
             sw_version = self.device.run_commands(["show version"])[0].get(
                 "softwareImageVersion", "0.0.0"
             )
-            if LooseVersion(sw_version) < LooseVersion("0.17.9"):
+            if Version(sw_version) < Version("0.17.9"):
                 raise NotImplementedError(
                     "MOS Software Version 0.17.9 or better required"
                 )
-            self._version = LooseVersion(sw_version)
+            self._version = Version(sw_version)
         except ConnectionError as ce:
             raise ConnectionException(ce.message)
 
@@ -264,7 +264,7 @@ class MOSDriver(NetworkDriver):
             self._candidate.append("end")
         if any(
             "source mac" in line for line in self._candidate
-        ) and self._version < LooseVersion("0.19.2"):
+        ) and self._version < Version("0.19.2"):
             # Waiting for fixed release
             raise CommandErrorException(
                 "Cannot set source mac in MOS versions prior to 0.19.2"
